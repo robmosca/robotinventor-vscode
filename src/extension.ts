@@ -1,20 +1,20 @@
 import * as vscode from "vscode";
+import { Ri5devBrowserProvider } from "./Ri5devBrowser";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "robotinventor" is now active!');
 
-  let disposable = vscode.commands.registerCommand(
-    "robotinventor.helloWorld",
-    () => {
-      // The code you place here will be executed every time your command is executed
+  const ri5devBrowserProvider = new Ri5devBrowserProvider();
 
-      // Display a message box to the user
-      vscode.window.showInformationMessage("Hello World from robotinventor!");
-    }
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      "ri5devBrowser",
+      ri5devBrowserProvider
+    ),
+    vscode.commands.registerCommand("ri5devBrowser.action.pickDevice", () => {
+      vscode.window.showInformationMessage("Picking a device!");
+    })
   );
-
-  context.subscriptions.push(disposable);
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {}

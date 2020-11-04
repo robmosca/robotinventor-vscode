@@ -4,7 +4,7 @@
   "description": "A Microsoft Visual Studio Code extension to program LEGO® Mindstorms® Robot Inventor in MicroPython",
   "version": "0.0.1",
   "publisher": "robmosca",
-  "repository": "",
+  "repository": "https://github.com/robmosca/robotinventor-vscode",
   "engines": {
     "vscode": "^1.50.0"
   },
@@ -12,16 +12,26 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:robotinventor.helloWorld"
+    "onView:ri5devBrowser",
+    "onCommand:ri5devBrowser.action.pickDevice"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "robotinventor.helloWorld",
-        "title": "Hello World"
+        "command": "ri5devBrowser.action.pickDevice",
+        "title": "Connect to a device",
+        "category": "ri5dev"
       }
-    ]
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "ri5devBrowser",
+          "name": "ri5dev device browser"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

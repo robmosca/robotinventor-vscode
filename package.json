@@ -31,7 +31,13 @@
           "name": "ri5dev device browser"
         }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "ri5devBrowser",
+        "contents": "No LEGO® Mindstorms® Robot Inventor hub found [learn more](https://www.lego.com/en-es/product/robot-inventor-51515).\n[Add hub](command:ri5devBrowser.action.pickDevice)"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

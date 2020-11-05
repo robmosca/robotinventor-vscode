@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function pickDevice(): Promise<void> {
-  const device = await Device.pickDevice();
+  const device = await Device.selectDevice();
   if (!device) {
     // user canceled
     return;
@@ -32,7 +32,7 @@ async function pickDevice(): Promise<void> {
       location: vscode.ProgressLocation.Window,
       title: "Connecting...",
     },
-    async (progress) => {
+    async () => {
       ri5devBrowserProvider.setDevice(device);
       try {
         await device.connect();

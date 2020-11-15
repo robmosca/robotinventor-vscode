@@ -41,6 +41,7 @@ async function pickDevice(): Promise<void> {
         vscode.window.showErrorMessage(
           `Failed to connect to ${device.name}: ${err.message}`
         );
+        ri5devBrowserProvider.clearDevice();
       }
     }
   );

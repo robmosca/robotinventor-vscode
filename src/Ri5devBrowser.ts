@@ -1,18 +1,23 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { Device } from "./device";
+import { on } from "process";
 
 class DeviceTreeItem extends vscode.TreeItem {
   constructor(public device: Device) {
-    super(device.name, vscode.TreeItemCollapsibleState.None);
-    this.tooltip = device.name;
-    this.description = device.firmwareVersion;
+    super(device?.name, vscode.TreeItemCollapsibleState.None);
   }
 
   iconPath = {
     light: path.join(__dirname, "..", "resources", "light", "device.svg"),
     dark: path.join(__dirname, "..", "resources", "dark", "device.svg"),
   };
+
+  refresh() {
+    this.label = this.device?.name;
+    this.tooltip = this.device?.name;
+    this.description = this.device?.firmwareVersion;
+  }
 }
 
 class CommandTreeItem extends vscode.TreeItem {
@@ -53,6 +58,16 @@ export class Ri5devBrowserProvider
 
   public setDevice(device: Device) {
     this.device = new DeviceTreeItem(device);
+    device.on("change", () => {
+      this.device?.refresh();
+      this._onDidChangeTreeData.fire();
+    });
+
+    this._onDidChangeTreeData.fire();
+  }
+
+  public clearDevice() {
+    this.device = undefined;
     this._onDidChangeTreeData.fire();
   }
 }

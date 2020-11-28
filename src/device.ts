@@ -2,8 +2,37 @@ import * as vscode from "vscode";
 import * as SerialPort from "serialport";
 import { existsSync } from "fs";
 import { EventEmitter } from "events";
+import { decodeBase64, randomId } from "./utils";
 
 const PROMPT = "\r\n>>> ";
+
+enum DeviceMode {
+  REPL,
+  API,
+}
+
+type StorageInfo = {
+  available: number;
+  total: number;
+  pct: number;
+  unit: string;
+  free: number;
+};
+
+type SlotInfo = {
+  name: string;
+  id: number;
+  project_id: string;
+  modified: Date;
+  type: string;
+  created: Date;
+  size: number;
+};
+
+type StorageStatus = {
+  storage: StorageInfo;
+  slots: SlotInfo[];
+};
 
 async function askDeviceFromList(manualEntry: string) {
   return new Promise<string>(async (resolve, reject) => {
@@ -54,6 +83,8 @@ export class Device extends EventEmitter {
   public name: string;
   public firmwareVersion: string;
   public serialPort: SerialPort | undefined;
+  public devMode: DeviceMode;
+  public storageStatus: StorageStatus | undefined;
 
   constructor(ttyDevice: string) {
     super();
@@ -61,6 +92,7 @@ export class Device extends EventEmitter {
     this.name = ttyDevice;
     this.firmwareVersion = "";
     this.serialPort = undefined;
+    this.devMode = DeviceMode.API;
   }
 
   private assertDeviceInitialized() {
@@ -75,6 +107,7 @@ export class Device extends EventEmitter {
       const dataHandler = (data: Buffer) => {
         if (data.toString().endsWith(PROMPT)) {
           this.serialPort?.removeListener("data", dataHandler);
+          this.devMode = DeviceMode.REPL;
           resolve();
         }
       };
@@ -83,6 +116,25 @@ export class Device extends EventEmitter {
     });
   }
 
+  private async exitREPL() {
+    return new Promise((resolve, reject) => {
+      if (this.devMode !== DeviceMode.REPL) {
+        return resolve();
+      }
+
+      const processData = (data: Buffer) => {
+        const stringData = data.toString();
+        if (stringData.startsWith('{"m":0')) {
+          this.serialPort?.removeListener("data", processData);
+          resolve();
+        }
+      };
+
+      this.serialPort?.on("data", processData);
+      this.serialPort?.write("\x04");
+      this.serialPort?.flush();
+    });
+  }
   private async execPythonCmd(cmd: string): Promise<string> {
     const removePrefix = (str: string, prefix: string) =>
       str.startsWith(prefix) ? str.substring(prefix.length) : str;
@@ -95,13 +147,17 @@ export class Device extends EventEmitter {
       let output = "";
 
       const processData = (data: Buffer) => {
-        let stringData = data.toString();
+        const stringData = data.toString();
         if (stringData.endsWith(PROMPT)) {
           this.serialPort?.removeListener("data", processData);
           output += removeSuffix(stringData, PROMPT);
           output = removePrefix(output, cmd);
           output = removePrefix(output, "... \r\n");
-          resolve(output);
+          if (output.toLowerCase().trim().startsWith("traceback")) {
+            reject(new Error(output));
+          } else {
+            resolve(output);
+          }
         } else {
           output += stringData;
         }
@@ -109,6 +165,52 @@ export class Device extends EventEmitter {
 
       this.serialPort?.on("data", processData);
       this.serialPort?.write(Buffer.from(`${cmd}\r\n`));
+      this.serialPort?.flush();
+    });
+  }
+
+  private async APIRequest(
+    cmd: string,
+    params: object
+  ): Promise<StorageStatus> {
+    this.assertDeviceInitialized();
+    await this.exitREPL();
+
+    return new Promise((resolve, reject) => {
+      let response = "";
+      const id = randomId();
+
+      const processResponse = (data: Buffer) => {
+        const stringData = data.toString();
+        const crPos = stringData.indexOf("\r");
+        if (crPos !== -1) {
+          const lines = stringData.split("\r");
+          for (let i = 0; i < lines.length - 1; ++i) {
+            response += lines[i];
+            try {
+              const data = JSON.parse(response);
+              if (data.i === id) {
+                this.serialPort?.removeListener("data", processResponse);
+                if (data.e) {
+                  reject(new Error(JSON.parse(decodeBase64(data.e))));
+                }
+                resolve(data.r);
+              }
+            } catch (err) {
+              this.serialPort?.removeListener("data", processResponse);
+              reject(err);
+            }
+            response = lines[lines.length - 1];
+          }
+        } else {
+          response += stringData;
+        }
+      };
+
+      const msg = { m: cmd, p: params, i: id };
+      const serializedMgs = JSON.stringify(msg);
+      this.serialPort?.on("data", processResponse);
+      this.serialPort?.write(Buffer.from(`${serializedMgs}\r`));
       this.serialPort?.flush();
     });
   }
@@ -126,10 +228,14 @@ export class Device extends EventEmitter {
   }
 
   public async readNameFromDevice() {
-    const response = await this.execPythonCmd(
-      "with open('local_name.txt') as f: print(f.read())\r\n"
-    );
-    this.name = response;
+    try {
+      const response = await this.execPythonCmd(
+        "with open('local_name.txt') as f: print(f.read())\r\n"
+      );
+      this.name = response;
+    } catch (err) {
+      this.name = "LEGO Hub";
+    }
     this.emit("change");
   }
 
@@ -151,5 +257,9 @@ export class Device extends EventEmitter {
         }
       );
     });
+  }
+
+  public async readPrograms() {
+    this.storageStatus = await this.APIRequest("get_storage_status", {});
   }
 }

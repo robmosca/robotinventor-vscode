@@ -36,6 +36,7 @@ async function pickDevice(): Promise<void> {
       ri5devBrowserProvider.setDevice(device);
       try {
         await device.connect();
+        await device.readPrograms();
         showTemporaryStatusBarMessage(`Connected`);
       } catch (err) {
         vscode.window.showErrorMessage(

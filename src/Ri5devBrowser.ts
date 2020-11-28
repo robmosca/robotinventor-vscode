@@ -1,11 +1,14 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { Device } from "./device";
+import { Device, SlotInfo } from "./device";
 import { on } from "process";
+import { formatFilesize } from "./utils";
 
 class DeviceTreeItem extends vscode.TreeItem {
   constructor(public device: Device) {
-    super(device?.name, vscode.TreeItemCollapsibleState.None);
+    super(device?.name, vscode.TreeItemCollapsibleState.Collapsed);
+    this.tooltip = device?.name;
+    this.description = "No version available";
   }
 
   iconPath = {
@@ -17,6 +20,21 @@ class DeviceTreeItem extends vscode.TreeItem {
     this.label = this.device?.name;
     this.tooltip = this.device?.name;
     this.description = this.device?.firmwareVersion;
+  }
+}
+
+class ProgramSlotTreeItem extends vscode.TreeItem {
+  public index: number;
+  public slot: SlotInfo | undefined;
+
+  constructor(index: number, slot?: SlotInfo) {
+    const name = slot ? slot.name : "";
+    const label = `${index}. ${name}`.trim();
+    super(label, vscode.TreeItemCollapsibleState.None);
+    this.index = index;
+    this.tooltip = slot ? name : "Empty";
+    this.description = slot ? formatFilesize(slot.size) : "Empty";
+    this.contextValue = "programSlot";
   }
 }
 
@@ -53,7 +71,17 @@ export class Ri5devBrowserProvider
   public getChildren(
     element?: BrowserTreeItem
   ): vscode.ProviderResult<BrowserTreeItem[]> {
-    return !element && this.device ? [this.device] : [];
+    if (!element) {
+      return this.device ? [this.device] : [];
+    } else if (element === this.device) {
+      const device = this.device.device;
+      const slots = device.storageStatus?.slots ?? [];
+      return [...Array(10).keys()].map(
+        (i) => new ProgramSlotTreeItem(i, slots[i])
+      );
+    } else {
+      return [];
+    }
   }
 
   public setDevice(device: Device) {

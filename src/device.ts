@@ -6,12 +6,12 @@ import { decodeBase64, randomId } from "./utils";
 
 const PROMPT = "\r\n>>> ";
 
-enum DeviceMode {
+export enum DeviceMode {
   REPL,
   API,
 }
 
-type StorageInfo = {
+export type StorageInfo = {
   available: number;
   total: number;
   pct: number;
@@ -19,17 +19,17 @@ type StorageInfo = {
   free: number;
 };
 
-type SlotInfo = {
+export type SlotInfo = {
   name: string;
   id: number;
   project_id: string;
   modified: Date;
-  type: string;
+  type: "python" | "scratch";
   created: Date;
   size: number;
 };
 
-type StorageStatus = {
+export type StorageStatus = {
   storage: StorageInfo;
   slots: SlotInfo[];
 };
@@ -227,7 +227,7 @@ export class Device extends EventEmitter {
     return selectedItem ? new Device(selectedItem) : undefined;
   }
 
-  public async readNameFromDevice() {
+  public async retrieveName() {
     try {
       const response = await this.execPythonCmd(
         "with open('local_name.txt') as f: print(f.read())\r\n"
@@ -236,6 +236,22 @@ export class Device extends EventEmitter {
     } catch (err) {
       this.name = "LEGO Hub";
     }
+    this.emit("change");
+  }
+
+  public async retrieveStorageStatus() {
+    const storageStatus = await this.APIRequest("get_storage_status", {});
+
+    storageStatus.slots = [...Array(10).keys()]
+      .filter((i) => storageStatus.slots[i])
+      .map((i) => {
+        const s = storageStatus.slots[i];
+        return {
+          ...s,
+          name: decodeBase64(s.name),
+        };
+      });
+    this.storageStatus = storageStatus;
     this.emit("change");
   }
 
@@ -251,15 +267,11 @@ export class Device extends EventEmitter {
             reject(err);
           } else {
             await this.getPrompt();
-            await this.readNameFromDevice();
+            await this.retrieveName();
             resolve();
           }
         }
       );
     });
-  }
-
-  public async readPrograms() {
-    this.storageStatus = await this.APIRequest("get_storage_status", {});
   }
 }

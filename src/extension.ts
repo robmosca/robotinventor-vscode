@@ -17,7 +17,17 @@ export function activate(context: vscode.ExtensionContext) {
     "ri5devBrowser.action.pickDevice",
     () => pickDevice()
   );
-  context.subscriptions.push(regRi5devBrowserProvider, regCommandPickDevice);
+  const regCommandRunProgram = vscode.commands.registerCommand(
+    "ri5devBrowser.runProgram",
+    (p) => {
+      console.log("Running program", p);
+    }
+  );
+  context.subscriptions.push(
+    regRi5devBrowserProvider,
+    regCommandPickDevice,
+    regCommandRunProgram
+  );
 }
 
 async function pickDevice(): Promise<void> {
@@ -36,7 +46,7 @@ async function pickDevice(): Promise<void> {
       ri5devBrowserProvider.setDevice(device);
       try {
         await device.connect();
-        await device.readPrograms();
+        await device.retrieveStorageStatus();
         showTemporaryStatusBarMessage(`Connected`);
       } catch (err) {
         vscode.window.showErrorMessage(

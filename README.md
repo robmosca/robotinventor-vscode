@@ -6,7 +6,7 @@ program the LEGO® Mindstorms® Robot Inventor set in MicroPython.
 **The code is incomplete at the moment and is not yet completely stable.**
 
 From time to time the JSON API does not respond or there are other failures
-for which I don't seem to be able to trace the root...
+for which I don't seem to be able to trace the root cause...
 Since there is no official documentation of the API, all that I did is based
 on what I could discover by experimenting with it.
 I also got information from the following repositories, based on the LEGO®

@@ -27,13 +27,22 @@
         "command": "ri5devBrowser.runProgram",
         "title": "Run program",
         "category": "ri5dev"
+      },
+      {
+        "command": "ri5devBrowser.removeProgram",
+        "title": "Remove program",
+        "category": "ri5dev"
       }
     ],
     "menus": {
       "view/item/context": [
         {
           "command": "ri5devBrowser.runProgram",
-          "when": "viewItem == programSlot"
+          "when": "viewItem == fullProgramSlot"
+        },
+        {
+          "command": "ri5devBrowser.removeProgram",
+          "when": "viewItem == fullProgramSlot"
         }
       ]
     },

@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import { Device } from "./device";
-import { Ri5devBrowserProvider } from "./Ri5devBrowser";
+import { ProgramSlotTreeItem, Ri5devBrowserProvider } from "./Ri5devBrowser";
 import { showTemporaryStatusBarMessage } from "./utils";
 
+let device: Device | undefined = undefined;
 let ri5devBrowserProvider: Ri5devBrowserProvider;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -15,23 +16,26 @@ export function activate(context: vscode.ExtensionContext) {
   );
   const regCommandPickDevice = vscode.commands.registerCommand(
     "ri5devBrowser.action.pickDevice",
-    () => pickDevice()
+    pickDevice
   );
   const regCommandRunProgram = vscode.commands.registerCommand(
     "ri5devBrowser.runProgram",
-    (p) => {
-      console.log("Running program", p);
-    }
+    runProgram
+  );
+  const regCommandRemoveProgram = vscode.commands.registerCommand(
+    "ri5devBrowser.removeProgram",
+    removeProgram
   );
   context.subscriptions.push(
     regRi5devBrowserProvider,
     regCommandPickDevice,
-    regCommandRunProgram
+    regCommandRunProgram,
+    regCommandRemoveProgram
   );
 }
 
 async function pickDevice(): Promise<void> {
-  const device = await Device.selectDevice();
+  device = await Device.selectDevice();
   if (!device) {
     // user canceled
     return;
@@ -43,6 +47,10 @@ async function pickDevice(): Promise<void> {
       title: "Connecting...",
     },
     async () => {
+      if (!device) {
+        return;
+      }
+
       ri5devBrowserProvider.setDevice(device);
       try {
         await device.connect();
@@ -56,6 +64,16 @@ async function pickDevice(): Promise<void> {
       }
     }
   );
+}
+
+async function runProgram(slot: ProgramSlotTreeItem) {
+  console.log(`Executing program ${slot.label} (Slot ${slot.index})...`);
+  await device?.runProgram(slot.index);
+}
+
+async function removeProgram(slot: ProgramSlotTreeItem) {
+  console.log(`Removing program ${slot.tooltip} from slot ${slot.index}...`);
+  await device?.removeProgram(slot.index);
 }
 
 export function deactivate() {}

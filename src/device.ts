@@ -1,8 +1,7 @@
-import * as vscode from "vscode";
 import * as SerialPort from "serialport";
-import { existsSync } from "fs";
 import { EventEmitter } from "events";
-import { decodeBase64, randomId } from "./utils";
+import { askDeviceFromList, askDeviceName } from "./helpers/askDevice";
+import { APIRequest } from "./api";
 
 const PROMPT = "\r\n>>> ";
 
@@ -29,54 +28,14 @@ export type SlotInfo = {
   size: number;
 };
 
-export type StorageStatus = {
-  storage: StorageInfo;
-  slots: SlotInfo[];
+type SlotsInfo = {
+  [index: number]: SlotInfo;
 };
 
-async function askDeviceFromList(manualEntry: string) {
-  return new Promise<string>(async (resolve, reject) => {
-    const serialPorts = await SerialPort.list();
-    // using this promise in the quick-pick will cause a progress
-    // bar to show if there are no items.
-    const list = serialPorts
-      .filter(
-        (port) =>
-          port.manufacturer === "LEGO System A/S" ||
-          port.path.startsWith("/dev/tty.LEGOHub")
-      )
-      .map((port) => port.path);
-
-    list.push(manualEntry);
-    const selected = await vscode.window.showQuickPick(list, {
-      ignoreFocusOut: true,
-      placeHolder:
-        "Searching for devices... Select a device or press ESC to cancel.",
-    });
-    resolve(selected);
-  });
-}
-
-async function askDeviceName() {
-  const name = await vscode.window.showInputBox({
-    ignoreFocusOut: true,
-    prompt: "Enter the name for the TTY device",
-    placeHolder: 'Example: "LEGOHub380B3CAEB5B6-Ser (Bluetooth)"',
-    validateInput: (value: string) => {
-      const devicePath = `/dev/tty.${value}`;
-      if (!existsSync(devicePath)) {
-        return `${devicePath} does not seem to exist, is it correct? 🤔`;
-      } else {
-        return null;
-      }
-    },
-  });
-  if (!name) {
-    // cancelled
-    return undefined;
-  }
-  return `/dev/tty.${name}`;
-}
+export type StorageStatus = {
+  storage: StorageInfo;
+  slots: SlotsInfo;
+};
 
 export class Device extends EventEmitter {
   public ttyDevice: string;
@@ -116,33 +75,18 @@ export class Device extends EventEmitter {
     });
   }
 
-  private async exitREPL() {
-    return new Promise((resolve, reject) => {
-      if (this.devMode !== DeviceMode.REPL) {
-        return resolve();
-      }
-
-      const processData = (data: Buffer) => {
-        const stringData = data.toString();
-        if (stringData.startsWith('{"m":0')) {
-          this.serialPort?.removeListener("data", processData);
-          resolve();
-        }
-      };
-
-      this.serialPort?.on("data", processData);
-      this.serialPort?.write("\x04");
-      this.serialPort?.flush();
-    });
-  }
   private async execPythonCmd(cmd: string): Promise<string> {
     const removePrefix = (str: string, prefix: string) =>
       str.startsWith(prefix) ? str.substring(prefix.length) : str;
     const removeSuffix = (str: string, prefix: string) =>
       str.endsWith(prefix) ? str.substring(0, str.length - prefix.length) : str;
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       this.assertDeviceInitialized();
+
+      if (this.devMode !== DeviceMode.REPL) {
+        await this.getPrompt();
+      }
 
       let output = "";
 
@@ -169,52 +113,6 @@ export class Device extends EventEmitter {
     });
   }
 
-  private async APIRequest(
-    cmd: string,
-    params: object
-  ): Promise<StorageStatus> {
-    this.assertDeviceInitialized();
-    await this.exitREPL();
-
-    return new Promise((resolve, reject) => {
-      let response = "";
-      const id = randomId();
-
-      const processResponse = (data: Buffer) => {
-        const stringData = data.toString();
-        const crPos = stringData.indexOf("\r");
-        if (crPos !== -1) {
-          const lines = stringData.split("\r");
-          for (let i = 0; i < lines.length - 1; ++i) {
-            response += lines[i];
-            try {
-              const data = JSON.parse(response);
-              if (data.i === id) {
-                this.serialPort?.removeListener("data", processResponse);
-                if (data.e) {
-                  reject(new Error(JSON.parse(decodeBase64(data.e))));
-                }
-                resolve(data.r);
-              }
-            } catch (err) {
-              this.serialPort?.removeListener("data", processResponse);
-              reject(err);
-            }
-            response = lines[lines.length - 1];
-          }
-        } else {
-          response += stringData;
-        }
-      };
-
-      const msg = { m: cmd, p: params, i: id };
-      const serializedMgs = JSON.stringify(msg);
-      this.serialPort?.on("data", processResponse);
-      this.serialPort?.write(Buffer.from(`${serializedMgs}\r`));
-      this.serialPort?.flush();
-    });
-  }
-
   static async selectDevice() {
     const manualEntry = "I don't see my device...";
     const selectedItem = await askDeviceFromList(manualEntry);
@@ -228,29 +126,53 @@ export class Device extends EventEmitter {
   }
 
   public async retrieveName() {
-    try {
-      const response = await this.execPythonCmd(
-        "with open('local_name.txt') as f: print(f.read())\r\n"
+    // TODO: Disabling retrieval of name for the moment as this would require
+    // a soft restart to go back to API mode
+    // try {
+    //   const response = await this.execPythonCmd(
+    //     "with open('local_name.txt') as f: print(f.read())\r\n"
+    //   );
+    //   this.name = response;
+    // } catch (err) {
+    //   this.name = "LEGO Hub";
+    // }
+    this.name = "LEGO Hub";
+    this.emit("change");
+  }
+
+  public async runProgram(index: number) {
+    this.assertDeviceInitialized();
+    if (index < 0 || index > 9) {
+      return Promise.reject(
+        new Error(`Invalid program slot index ${index}, valid slots: 0-9`)
       );
-      this.name = response;
-    } catch (err) {
-      this.name = "LEGO Hub";
     }
+    return APIRequest(this.serialPort!, "program_execute", {
+      slotid: index,
+    });
+  }
+
+  public async removeProgram(index: number) {
+    this.assertDeviceInitialized();
+    if (index < 0 || index > 9) {
+      return Promise.reject(
+        new Error(`Invalid program slot index ${index}, valid slots: 0-9`)
+      );
+    }
+    await APIRequest(this.serialPort!, "remove_project", {
+      slotid: index,
+    });
+    await this.retrieveStorageStatus();
     this.emit("change");
   }
 
   public async retrieveStorageStatus() {
-    const storageStatus = await this.APIRequest("get_storage_status", {});
-
-    storageStatus.slots = [...Array(10).keys()]
-      .filter((i) => storageStatus.slots[i])
-      .map((i) => {
-        const s = storageStatus.slots[i];
-        return {
-          ...s,
-          name: decodeBase64(s.name),
-        };
-      });
+    this.assertDeviceInitialized();
+    const storageStatus = (await APIRequest(
+      this.serialPort!,
+      "get_storage_status",
+      {}
+    )) as StorageStatus;
     this.storageStatus = storageStatus;
     this.emit("change");
   }
@@ -266,7 +188,6 @@ export class Device extends EventEmitter {
           if (err) {
             reject(err);
           } else {
-            await this.getPrompt();
             await this.retrieveName();
             resolve();
           }

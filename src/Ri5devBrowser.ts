@@ -1,10 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { Device, SlotInfo } from "./device";
-import { on } from "process";
-import { formatFilesize } from "./utils";
+import { decodeBase64, formatFilesize } from "./utils";
 
-class DeviceTreeItem extends vscode.TreeItem {
+export class DeviceTreeItem extends vscode.TreeItem {
   constructor(public device: Device) {
     super(device?.name, vscode.TreeItemCollapsibleState.Collapsed);
     this.tooltip = device?.name;
@@ -23,22 +22,22 @@ class DeviceTreeItem extends vscode.TreeItem {
   }
 }
 
-class ProgramSlotTreeItem extends vscode.TreeItem {
+export class ProgramSlotTreeItem extends vscode.TreeItem {
   public index: number;
   public slot: SlotInfo | undefined;
 
   constructor(index: number, slot?: SlotInfo) {
-    const name = slot ? slot.name : "";
+    const name = slot ? decodeBase64(slot.name) : "";
     const label = `${index}. ${name}`.trim();
     super(label, vscode.TreeItemCollapsibleState.None);
     this.index = index;
     this.tooltip = slot ? name : "Empty";
     this.description = slot ? formatFilesize(slot.size) : "Empty";
-    this.contextValue = "programSlot";
+    this.contextValue = slot ? "fullProgramSlot" : "emptyProgramSlot";
   }
 }
 
-class CommandTreeItem extends vscode.TreeItem {
+export class CommandTreeItem extends vscode.TreeItem {
   constructor(label: string, command?: string) {
     super(label);
     if (command) {
@@ -50,7 +49,7 @@ class CommandTreeItem extends vscode.TreeItem {
   }
 }
 
-type BrowserTreeItem = DeviceTreeItem | CommandTreeItem;
+type BrowserTreeItem = DeviceTreeItem | ProgramSlotTreeItem | CommandTreeItem;
 
 export class Ri5devBrowserProvider
   implements vscode.TreeDataProvider<BrowserTreeItem> {
@@ -76,7 +75,7 @@ export class Ri5devBrowserProvider
     } else if (element === this.device) {
       const device = this.device.device;
       const slots = device.storageStatus?.slots ?? [];
-      return [...Array(10).keys()].map(
+      return [...Array(20).keys()].map(
         (i) => new ProgramSlotTreeItem(i, slots[i])
       );
     } else {

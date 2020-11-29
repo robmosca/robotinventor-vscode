@@ -1,12 +1,18 @@
-# robotinventor README
+# VScode extension for the Robot inventor set
 
 This is my attempt at writing a Microsoft Visual Studio Code extension to
-program LEGO® Mindstorms® Robot Inventor in MicroPython.
+program the LEGO® Mindstorms® Robot Inventor set in MicroPython.
 
-**The code is incomplete and unstable at the moment...**
+**The code is incomplete at the moment and is not yet completely stable.**
 
-There seem to be problems with the JSON API. Sometimes I get not response,
-sometimes it complains about wrong JSON format (while the request has correct
-JSON format) and I don't seem to be able to crack it...
+From time to time the JSON API does not respond or there are other failures
+for which I don't seem to be able to trace the root...
+Since there is no official documentation of the API, all that I did is based
+on what I could discover by experimenting with it.
+I also got information from the following repositories, based on the LEGO®
+Education SPIKE™️ Prime Set:
+- [gpdaniels/spike-prime](https://github.com/gpdaniels/spike-prime/blob/master/specifications/stm32f413.pdf)
+- [nutki/spike-tools](https://github.com/nutki/spike-tools)
+- [sanjayseshan/spikeprime-tools](https://github.com/sanjayseshan/spikeprime-tools)
 
 If anyone has any suggestion feel free to get in touch :)

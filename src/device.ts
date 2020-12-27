@@ -37,6 +37,14 @@ export type StorageStatus = {
   slots: SlotsInfo;
 };
 
+function checkSlotId(slotId: number) {
+  if (slotId < 0 || slotId > 19) {
+    return Promise.reject(
+      new Error(`Invalid program slot index ${slotId}, valid slots: 0-19`)
+    );
+  }
+}
+
 export class Device extends EventEmitter {
   public ttyDevice: string;
   public name: string;
@@ -61,7 +69,7 @@ export class Device extends EventEmitter {
   }
 
   private async getPrompt() {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       this.assertDeviceInitialized();
       const dataHandler = (data: Buffer) => {
         if (data.toString().endsWith(PROMPT)) {
@@ -140,28 +148,41 @@ export class Device extends EventEmitter {
     this.emit("change");
   }
 
-  public async runProgram(index: number) {
+  private executeSlotSpecificCommand(cmd: string, slotId: number) {
     this.assertDeviceInitialized();
-    if (index < 0 || index > 9) {
-      return Promise.reject(
-        new Error(`Invalid program slot index ${index}, valid slots: 0-9`)
-      );
-    }
-    return APIRequest(this.serialPort!, "program_execute", {
-      slotid: index,
+    checkSlotId(slotId);
+    return APIRequest(this.serialPort!, cmd, {
+      slotid: slotId,
     });
   }
 
-  public async removeProgram(index: number) {
+  public listSlots() {
+    return this.storageStatus?.slots;
+  }
+
+  public async runProgram(slotId: number) {
+    return this.executeSlotSpecificCommand("program_execute", slotId);
+  }
+
+  public async stopProgram() {
     this.assertDeviceInitialized();
-    if (index < 0 || index > 9) {
-      return Promise.reject(
-        new Error(`Invalid program slot index ${index}, valid slots: 0-9`)
-      );
-    }
-    await APIRequest(this.serialPort!, "remove_project", {
-      slotid: index,
+    return APIRequest(this.serialPort!, "program_terminate");
+  }
+
+  public async moveProgram(fromSlotId: number, toSlotId: number) {
+    this.assertDeviceInitialized();
+    checkSlotId(fromSlotId);
+    checkSlotId(toSlotId);
+    await APIRequest(this.serialPort!, "move_project", {
+      old_slotid: fromSlotId,
+      new_slotid: toSlotId,
     });
+    await this.retrieveStorageStatus();
+    this.emit("change");
+  }
+
+  public async removeProgram(slotId: number) {
+    await this.executeSlotSpecificCommand("remove_project", slotId);
     await this.retrieveStorageStatus();
     this.emit("change");
   }
@@ -178,7 +199,7 @@ export class Device extends EventEmitter {
   }
 
   public connect() {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       this.serialPort = new SerialPort(
         this.ttyDevice,
         {

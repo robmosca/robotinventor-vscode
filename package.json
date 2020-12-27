@@ -29,6 +29,16 @@
         "category": "ri5dev"
       },
       {
+        "command": "ri5devBrowser.stopProgram",
+        "title": "Stop program",
+        "category": "ri5dev"
+      },
+      {
+        "command": "ri5devBrowser.moveProgram",
+        "title": "Move program",
+        "category": "ri5dev"
+      },
+      {
         "command": "ri5devBrowser.removeProgram",
         "title": "Remove program",
         "category": "ri5dev"
@@ -38,6 +48,14 @@
       "view/item/context": [
         {
           "command": "ri5devBrowser.runProgram",
+          "when": "viewItem == fullProgramSlot"
+        },
+        {
+          "command": "ri5devBrowser.stopProgram",
+          "when": "viewItem == device"
+        },
+        {
+          "command": "ri5devBrowser.moveProgram",
           "when": "viewItem == fullProgramSlot"
         },
         {

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Device } from "./device";
+import { askSlotFromList, SlotType } from "./helpers/askSlot";
 import { ProgramSlotTreeItem, Ri5devBrowserProvider } from "./Ri5devBrowser";
 import { showTemporaryStatusBarMessage } from "./utils";
 
@@ -22,6 +23,14 @@ export function activate(context: vscode.ExtensionContext) {
     "ri5devBrowser.runProgram",
     runProgram
   );
+  const regCommandStopProgram = vscode.commands.registerCommand(
+    "ri5devBrowser.stopProgram",
+    stopProgram
+  );
+  const regCommandMoveProgram = vscode.commands.registerCommand(
+    "ri5devBrowser.moveProgram",
+    moveProgram
+  );
   const regCommandRemoveProgram = vscode.commands.registerCommand(
     "ri5devBrowser.removeProgram",
     removeProgram
@@ -30,6 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
     regRi5devBrowserProvider,
     regCommandPickDevice,
     regCommandRunProgram,
+    regCommandStopProgram,
+    regCommandMoveProgram,
     regCommandRemoveProgram
   );
 }
@@ -66,14 +77,65 @@ async function pickDevice(): Promise<void> {
   );
 }
 
-async function runProgram(slot: ProgramSlotTreeItem) {
-  console.log(`Executing program ${slot.label} (Slot ${slot.index})...`);
-  await device?.runProgram(slot.index);
+async function askDeviceSlot(type: SlotType = "all") {
+  if (!device) {
+    throw new Error("No LEGO Hub connected, first connect the Hub...");
+  }
+  return await askSlotFromList(device, type);
 }
 
-async function removeProgram(slot: ProgramSlotTreeItem) {
-  console.log(`Removing program ${slot.tooltip} from slot ${slot.index}...`);
-  await device?.removeProgram(slot.index);
+async function execDeviceMethodOnSlot(
+  functionName: string,
+  slot?: ProgramSlotTreeItem
+) {
+  if (!slot) {
+    slot = await askDeviceSlot();
+    if (!slot) {
+      return;
+    }
+  }
+  console.log(
+    `Executing ${functionName} ${slot.tooltip} (Slot ${slot.index})...`
+  );
+
+  if (device) {
+    await (device as { [method: string]: any })[functionName](slot.index);
+  }
+}
+
+async function runProgram(slot?: ProgramSlotTreeItem) {
+  execDeviceMethodOnSlot("runProgram", slot);
+}
+
+async function stopProgram() {
+  await device?.stopProgram();
+}
+
+async function moveProgram(
+  fromSlot?: ProgramSlotTreeItem,
+  toSlot?: ProgramSlotTreeItem
+) {
+  if (!fromSlot) {
+    fromSlot = await askDeviceSlot("full");
+    if (!fromSlot) {
+      return;
+    }
+  }
+  if (!toSlot) {
+    toSlot = await askDeviceSlot("all");
+    if (!toSlot) {
+      return;
+    }
+  }
+  console.log(
+    `Moving program ${fromSlot.tooltip} (Slot ${fromSlot.index}) to slot ${toSlot.index}...`
+  );
+
+  await device?.moveProgram(fromSlot.index, toSlot.index);
+}
+
+async function removeProgram(slot?: ProgramSlotTreeItem) {
+  execDeviceMethodOnSlot("removeProgram", slot);
 }
 
 export function deactivate() {}

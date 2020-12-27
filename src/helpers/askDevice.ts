@@ -3,7 +3,7 @@ import * as SerialPort from "serialport";
 import { existsSync } from "fs";
 
 export async function askDeviceFromList(manualEntry: string) {
-  return new Promise<string>(async (resolve, reject) => {
+  return new Promise<string | undefined>(async (resolve, reject) => {
     const serialPorts = await SerialPort.list();
     // using this promise in the quick-pick will cause a progress
     // bar to show if there are no items.
@@ -20,11 +20,12 @@ export async function askDeviceFromList(manualEntry: string) {
     const selected = await vscode.window.showQuickPick(list, {
       ignoreFocusOut: true,
       placeHolder:
-        "Searching for devices... Select a device or press ESC to cancel.",
+        "Searching for devices... Select a device or press ESC to cancel",
     });
     resolve(selected);
   });
 }
+
 export async function askDeviceName() {
   const name = await vscode.window.showInputBox({
     ignoreFocusOut: true,

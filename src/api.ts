@@ -56,7 +56,7 @@ export default class API {
 export function APIRequest(
   serialPort: SerialPort,
   request: string,
-  params: object,
+  params: object = {},
   timeout_in_ms: number = 5000
 ) {
   return new API(serialPort).sendRequest(request, params, timeout_in_ms);

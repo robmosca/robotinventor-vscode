@@ -8,6 +8,7 @@ export class DeviceTreeItem extends vscode.TreeItem {
     super(device?.name, vscode.TreeItemCollapsibleState.Collapsed);
     this.tooltip = device?.name;
     this.description = "No version available";
+    this.contextValue = "device";
   }
 
   iconPath = {

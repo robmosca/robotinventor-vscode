@@ -4,7 +4,7 @@ This is my attempt at writing a Microsoft Visual Studio Code extension to
 program the LEGO® MINDSTORMS® Robot Inventor set in MicroPython.
 
 
-# Known limitations
+## Known limitations
 
 - I wrote and tested the extension on macOS. I am not sure if it works in
   Windows or Linux out of the box
@@ -13,7 +13,7 @@ program the LEGO® MINDSTORMS® Robot Inventor set in MicroPython.
   to time, still not sure why.
 
 
-# How to use it
+## How to use it
 
 After installing the extension open the RI5DEV device browser:
 
@@ -42,7 +42,7 @@ execution of a program.
 
 ![Commands](./imgs/commands.png)
 
-# Useful links and external references
+## Useful links and external references
 
 Since there is no official documentation for the API, the implementation is based
 on what I could discover empirically.

@@ -2,6 +2,7 @@ import * as SerialPort from "serialport";
 import { EventEmitter } from "events";
 import { askDeviceFromList, askDeviceName } from "./helpers/askDevice";
 import { APIRequest } from "./api";
+import { decodeBase64, encodeBase64 } from "./utils";
 
 const PROMPT = "\r\n>>> ";
 
@@ -185,6 +186,38 @@ export class Device extends EventEmitter {
     await this.executeSlotSpecificCommand("remove_project", slotId);
     await this.retrieveStorageStatus();
     this.emit("change");
+  }
+
+  public async uploadProgram(prgName: string, prgText: string, slotId: number) {
+    checkSlotId(slotId);
+
+    const meta = {
+      created: Date.now(),
+      modified: Date.now(),
+      name: encodeBase64(prgName),
+      project_id: "ScctlpwQVu64", // This seems to be mandatory for python files
+      type: "python",
+    };
+    const size = prgText.length;
+
+    const start = (await APIRequest(this.serialPort!, "start_write_program", {
+      slotid: slotId,
+      size: size,
+      meta: meta,
+    })) as any;
+
+    const { blocksize, transferid } = start;
+    for (let startPos = 0; startPos < size; startPos += blocksize) {
+      const data = prgText.slice(
+        startPos,
+        Math.min(startPos + blocksize, size)
+      );
+      await APIRequest(this.serialPort!, "write_package", {
+        data: encodeBase64(data),
+        transferid,
+      });
+    }
+    this.retrieveStorageStatus();
   }
 
   public async retrieveStorageStatus() {

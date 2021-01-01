@@ -1,3 +1,4 @@
+import { basename } from "path";
 import * as vscode from "vscode";
 import { Device } from "./device";
 import { askSlotFromList, SlotType } from "./helpers/askSlot";
@@ -35,13 +36,18 @@ export function activate(context: vscode.ExtensionContext) {
     "ri5devBrowser.removeProgram",
     removeProgram
   );
+  const regCommandUploadProgram = vscode.commands.registerCommand(
+    "ri5devBrowser.uploadProgram",
+    uploadProgram
+  );
   context.subscriptions.push(
     regRi5devBrowserProvider,
     regCommandPickDevice,
     regCommandRunProgram,
     regCommandStopProgram,
     regCommandMoveProgram,
-    regCommandRemoveProgram
+    regCommandRemoveProgram,
+    regCommandUploadProgram
   );
 }
 
@@ -77,11 +83,21 @@ async function pickDevice(): Promise<void> {
   );
 }
 
-async function askDeviceSlot(type: SlotType = "all") {
+function isDeviceConnected() {
   if (!device) {
-    throw new Error("No LEGO Hub connected, first connect the Hub...");
+    vscode.window.showErrorMessage(
+      "No LEGO Hub connected, first connect the Hub..."
+    );
+    return false;
   }
-  return await askSlotFromList(device, type);
+  return true;
+}
+
+async function askDeviceSlot(type: SlotType = "all") {
+  if (!isDeviceConnected()) {
+    return;
+  }
+  return await askSlotFromList(device!, type);
 }
 
 async function execDeviceMethodOnSlot(
@@ -108,6 +124,9 @@ async function runProgram(slot?: ProgramSlotTreeItem) {
 }
 
 async function stopProgram() {
+  if (!isDeviceConnected()) {
+    return;
+  }
   await device?.stopProgram();
 }
 
@@ -115,6 +134,9 @@ async function moveProgram(
   fromSlot?: ProgramSlotTreeItem,
   toSlot?: ProgramSlotTreeItem
 ) {
+  if (!isDeviceConnected()) {
+    return;
+  }
   if (!fromSlot) {
     fromSlot = await askDeviceSlot("full");
     if (!fromSlot) {
@@ -136,6 +158,29 @@ async function moveProgram(
 
 async function removeProgram(slot?: ProgramSlotTreeItem) {
   execDeviceMethodOnSlot("removeProgram", slot);
+}
+
+async function uploadProgram(slot?: ProgramSlotTreeItem) {
+  if (!isDeviceConnected()) {
+    return;
+  }
+  const editor = vscode.window.activeTextEditor;
+  const filename = editor?.document.fileName;
+  if (!filename || !filename.endsWith(".py")) {
+    vscode.window.showErrorMessage("You first need to open a micropython file");
+    return;
+  }
+  if (!slot) {
+    slot = await askDeviceSlot("all");
+    if (!slot) {
+      return;
+    }
+  }
+  console.log(`Uploading program ${filename} to slot ${slot.index}...`);
+
+  const prgName = basename(filename, ".py");
+  const prgText = editor!.document.getText();
+  await device?.uploadProgram(prgName, prgText, slot.index);
 }
 
 export function deactivate() {}

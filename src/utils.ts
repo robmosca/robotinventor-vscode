@@ -40,6 +40,11 @@ export function decodeBase64(data: string) {
   return b.toString("utf-8");
 }
 
+export function encodeBase64(data: string) {
+  const b = Buffer.from(data);
+  return b.toString("base64");
+}
+
 export function formatFilesize(bytes: number, decimals = 2) {
   if (bytes === 0) {
     return "0 B";

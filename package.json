@@ -42,6 +42,11 @@
         "command": "ri5devBrowser.removeProgram",
         "title": "Remove program",
         "category": "ri5dev"
+      },
+      {
+        "command": "ri5devBrowser.uploadProgram",
+        "title": "Upload program",
+        "category": "ri5dev"
       }
     ],
     "menus": {
@@ -61,6 +66,10 @@
         {
           "command": "ri5devBrowser.removeProgram",
           "when": "viewItem == fullProgramSlot"
+        },
+        {
+          "command": "ri5devBrowser.uploadProgram",
+          "when": "viewItem == fullProgramSlot || viewItem == emptyProgramSlot"
         }
       ]
     },

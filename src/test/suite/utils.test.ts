@@ -2,8 +2,6 @@ import * as vscode from "vscode";
 import * as sinon from "sinon";
 import * as sinonChai from "sinon-chai";
 import * as chai from "chai";
-const chaiMatch = require("chai-match");
-
 import {
   decodeBase64,
   encodeBase64,
@@ -11,6 +9,8 @@ import {
   randomId,
   showTemporaryStatusBarMessage,
 } from "../../utils";
+
+const chaiMatch = require("chai-match");
 
 const mockSetStatusBarMessage = sinon.spy(vscode.window, "setStatusBarMessage");
 

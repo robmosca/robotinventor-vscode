@@ -26,6 +26,7 @@ export default class SerialProcessor {
           }
         }
       };
+
       const cleanUp = () => {
         if (timeout) {
           clearTimeout(timeout);
@@ -65,7 +66,7 @@ export default class SerialProcessor {
 
       timeout = setTimeout(() => {
         this.serialPort.removeListener("data", processData);
-        reject(new Error(`Timeout while processing msg ${msg}`));
+        reject(new Error(`Timeout while processing message '${msg}'`));
       }, timeout_in_ms);
     });
   }

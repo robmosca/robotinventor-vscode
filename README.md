@@ -52,4 +52,8 @@ Education SPIKE™️ Prime Set:
 - [nutki/spike-tools](https://github.com/nutki/spike-tools)
 - [sanjayseshan/spikeprime-tools](https://github.com/sanjayseshan/spikeprime-tools)
 
-_LEGO and Mindstorms are trademarks of the LEGO Groups._
+I based my implementation on the excellent work of David Lechner (for EV3): 
+
+https://github.com/ev3dev/vscode-ev3dev-browser
+
+_LEGO and Mindstorms are trademarks of the LEGO Group._

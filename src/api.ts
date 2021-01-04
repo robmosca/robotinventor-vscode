@@ -10,7 +10,6 @@ export default class API {
       if (data.startsWith('{"m":0')) {
         return { resolve: true };
       }
-      return { resolve: false };
     });
 
     return serialProcessor.sendAndProcess("\x04", 2000);

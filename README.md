@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/robmosca/robotinventor-vscode/badge.svg)](https://coveralls.io/github/robmosca/robotinventor-vscode)
+
 # VScode extension for the Robot inventor set
 
 This is my attempt at writing a Microsoft Visual Studio Code extension to

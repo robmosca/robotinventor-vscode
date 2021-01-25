@@ -5,22 +5,23 @@ import { decodeBase64, randomId } from "./utils";
 export default class API {
   constructor(private serialPort: SerialPort) {}
 
-  public async waitAPIready() {
+  public async waitAPIready(timeout: number = 2000) {
     const serialProcessor = new SerialProcessor(this.serialPort, (data) => {
       if (data.startsWith('{"m":0')) {
         return { resolve: true };
       }
     });
 
-    return serialProcessor.sendAndProcess("\x04", 2000);
+    return serialProcessor.sendAndProcess("\x04", timeout);
   }
 
   public async sendRequest(
     request: string,
     params: object,
-    timeout_in_ms: number = 5000
+    timeout_in_ms: number = 5000,
+    reqId?: string
   ): Promise<unknown> {
-    const id = randomId();
+    const id = reqId ?? randomId();
     const msg = { m: request, p: params, i: id };
     const serializedMsg = JSON.stringify(msg);
     let response = "";
@@ -31,13 +32,16 @@ export default class API {
         const lines = accData.split("\r");
         for (let i = 0; i < lines.length - 1; ++i) {
           let parsedLine: any = {};
+
           try {
             parsedLine = JSON.parse(lines[i]);
           } catch (err) {}
+
           if (parsedLine.e) {
             const err = JSON.parse(decodeBase64(parsedLine.e));
             throw new Error(err.message);
           }
+
           if (parsedLine.i === id) {
             return { resolve: true, returnValue: parsedLine.r };
           }

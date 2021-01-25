@@ -26,18 +26,105 @@ suite("API Test Suite", () => {
       expect(port.binding.recording.toString()).to.equal("\x04\r");
     });
 
-    test("Times out if the device does not emit the correct sequence", () => {
-      // TODO
+    test("Times out if the device does not emit the correct sequence", async () => {
+      MockBinding.createPort("/dev/echoserialport", {
+        echo: true,
+        record: true,
+        readyData: Buffer.from(""),
+      });
+      SerialPort.Binding = MockBinding;
+      const port = new SerialPort("/dev/echoserialport");
+      const api = new API(port);
+
+      try {
+        await api.waitAPIready(500);
+      } catch (err) {
+        expect(err.message).to.equal("Timeout while processing message '\x04'");
+      }
     });
   });
 
   suite("Sends request", () => {
-    test("and retrieve the corresponding response", () => {
-      // TODO
+    test("and retrieve the corresponding response", async () => {
+      const reqId = "1234";
+
+      MockBinding.createPort("/dev/echoserialport", {
+        echo: true,
+        record: true,
+        readyData: Buffer.from(`{"m":0, "r": "response", "i": "${reqId}"}\r`),
+      });
+      SerialPort.Binding = MockBinding;
+      const port = new SerialPort("/dev/echoserialport");
+      const api = new API(port);
+
+      const response = await api.sendRequest(
+        "request",
+        { param1: "1", param2: 2 },
+        500,
+        reqId
+      );
+
+      expect(port.binding.recording.toString()).to.equal(
+        '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r'
+      );
+      expect(response).to.equal("response");
     });
 
-    test("and times out if the response does not come back in time", () => {
-      // TODO
+    test("and raises an exception in case of error", async () => {
+      const reqId = "1234";
+
+      MockBinding.createPort("/dev/echoserialport", {
+        echo: true,
+        record: true,
+        readyData: Buffer.from(
+          `{"m":0, "e": "eyJtZXNzYWdlIjogImVycm9yIn0=", "i": "${reqId}"}\r`
+        ),
+      });
+      SerialPort.Binding = MockBinding;
+      const port = new SerialPort("/dev/echoserialport");
+      const api = new API(port);
+
+      try {
+        const response = await api.sendRequest(
+          "request",
+          { param1: "1", param2: 2 },
+          500,
+          reqId
+        );
+      } catch (error) {
+        expect(port.binding.recording.toString()).to.equal(
+          '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r'
+        );
+        expect(error.message).to.equal("error");
+      }
+    });
+
+    test("and times out if the response does not come back in time", async () => {
+      const reqId = "1234";
+      MockBinding.createPort("/dev/echoserialport", {
+        echo: false,
+        record: true,
+        readyData: Buffer.from(""),
+      });
+      SerialPort.Binding = MockBinding;
+      const port = new SerialPort("/dev/echoserialport");
+      const api = new API(port);
+
+      try {
+        const response = await api.sendRequest(
+          "request",
+          { param1: "1", param2: 2 },
+          500,
+          reqId
+        );
+      } catch (error) {
+        expect(port.binding.recording.toString()).to.equal(
+          '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r'
+        );
+        expect(error.message).to.equal(
+          'Timeout while processing message \'{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\''
+        );
+      }
     });
   });
 });

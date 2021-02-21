@@ -28,7 +28,7 @@ export async function askSlotFromList(device: Device, slotType: SlotType) {
         })
         .map((i) => {
           const slotTreeItem = new ProgramSlotTreeItem(i, slots[i]);
-          return slotTreeItem.label!;
+          return slotTreeItem.label! as string;
         });
       const selected = await vscode.window.showQuickPick(list, {
         ignoreFocusOut: true,

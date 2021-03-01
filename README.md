@@ -5,7 +5,6 @@
 This is my attempt at writing a Microsoft Visual Studio Code extension to
 program the LEGO® MINDSTORMS® Robot Inventor set in MicroPython.
 
-
 ## Known limitations
 
 - I wrote and tested the extension on macOS. I am not sure if it works in
@@ -59,3 +58,12 @@ I based my implementation on the excellent work of David Lechner (for EV3):
 [ev3dev/vscode-ev3dev-browser](https://github.com/ev3dev/vscode-ev3dev-browser)
 
 _LEGO and Mindstorms are trademarks of the LEGO Group._
+
+## Disclaimer
+
+_The material embodied in this software is provided to you "as-is" and without_
+_warranty of any kind, express, implied or otherwise, including without_
+_limitation, any warranty of fitness for a particular purpose. In no event shall_
+_the author of this software be liable for any direct, special, incidental,_
+_indirect or consequential damages of any kind arising out of or in connection_
+_with the possession, use or performance of this software._

@@ -24,6 +24,11 @@
         "category": "ri5dev"
       },
       {
+        "command": "ri5devBrowser.action.disconnectDevice",
+        "title": "Disconnect",
+        "category": "ri5dev"
+      },
+      {
         "command": "ri5devBrowser.runProgram",
         "title": "Run program",
         "category": "ri5dev"
@@ -57,6 +62,10 @@
         },
         {
           "command": "ri5devBrowser.stopProgram",
+          "when": "viewItem == device"
+        },
+        {
+          "command": "ri5devBrowser.action.disconnectDevice",
           "when": "viewItem == device"
         },
         {

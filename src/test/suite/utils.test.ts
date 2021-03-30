@@ -18,9 +18,9 @@ chai.use(sinonChai);
 chai.use(chaiMatch);
 const expect = chai.expect;
 
-suite("Utils Test Suite", () => {
-  suite("showTemporaryStatusBarMessage", () => {
-    test("Shows temporary message in status bar", () => {
+suite("Utils Test Suite", function () {
+  suite("showTemporaryStatusBarMessage", function () {
+    test("Shows temporary message in status bar", function () {
       showTemporaryStatusBarMessage("This is a test message");
       expect(mockSetStatusBarMessage).to.have.been.calledWith(
         "This is a test message"
@@ -28,14 +28,14 @@ suite("Utils Test Suite", () => {
     });
   });
 
-  suite("randomId", () => {
-    test("Generates an empty id", () => {
+  suite("randomId", function () {
+    test("Generates an empty id", function () {
       for (let length = -4; length < 1; ++length) {
         expect(randomId(length)).to.equal("");
       }
     });
 
-    test("Generates a random id", () => {
+    test("Generates a random id", function () {
       for (let length = 1; length < 10; ++length) {
         const randId = randomId(length);
         expect(randId.length).to.equal(length);
@@ -44,8 +44,8 @@ suite("Utils Test Suite", () => {
     });
   });
 
-  suite("decodeBase64", () => {
-    test("Decodes from base64", () => {
+  suite("decodeBase64", function () {
+    test("Decodes from base64", function () {
       expect(decodeBase64("")).to.equal("");
       expect(decodeBase64("VGhpcyBpcyBhIHRlc3Q=")).to.equal("This is a test");
       expect(
@@ -54,8 +54,8 @@ suite("Utils Test Suite", () => {
     });
   });
 
-  suite("encodeBase64", () => {
-    test("Encodes in base64", () => {
+  suite("encodeBase64", function () {
+    test("Encodes in base64", function () {
       expect(encodeBase64("")).to.equal("");
       expect(encodeBase64("A simple test :)")).to.equal(
         "QSBzaW1wbGUgdGVzdCA6KQ=="
@@ -68,8 +68,8 @@ suite("Utils Test Suite", () => {
     });
   });
 
-  suite("formatFilesize", () => {
-    test("Formats file sizes", () => {
+  suite("formatFilesize", function () {
+    test("Formats file sizes", function () {
       expect(formatFilesize(0)).to.equal("0 B");
       expect(formatFilesize(54)).to.equal("54 B");
       expect(formatFilesize(1024)).to.equal("1 KB");

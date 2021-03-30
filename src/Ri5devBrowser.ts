@@ -95,6 +95,7 @@ export class Ri5devBrowserProvider
   }
 
   public clearDevice() {
+    this.device?.device.removeAllListeners();
     this.device = undefined;
     this._onDidChangeTreeData.fire();
   }

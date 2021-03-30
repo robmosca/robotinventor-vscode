@@ -9,9 +9,9 @@ const MockBinding = require("@serialport/binding-mock");
 chai.use(sinonChai);
 const expect = chai.expect;
 
-suite("API Test Suite", () => {
-  suite("Waits for the API to be ready", () => {
-    test("Waits for API to be ready", async () => {
+suite("API Test Suite", function () {
+  suite("Waits for the API to be ready", function () {
+    test("Waits for API to be ready", async function () {
       MockBinding.createPort("/dev/echoserialport", {
         echo: true,
         record: true,
@@ -26,7 +26,7 @@ suite("API Test Suite", () => {
       expect(port.binding.recording.toString()).to.equal("\x04\r");
     });
 
-    test("Times out if the device does not emit the correct sequence", async () => {
+    test("Times out if the device does not emit the correct sequence", async function () {
       MockBinding.createPort("/dev/echoserialport", {
         echo: true,
         record: true,
@@ -44,8 +44,8 @@ suite("API Test Suite", () => {
     });
   });
 
-  suite("Sends request", () => {
-    test("and retrieve the corresponding response", async () => {
+  suite("Sends request", function () {
+    test("and retrieve the corresponding response", async function () {
       const reqId = "1234";
 
       MockBinding.createPort("/dev/echoserialport", {
@@ -70,7 +70,7 @@ suite("API Test Suite", () => {
       expect(response).to.equal("response");
     });
 
-    test("and raises an exception in case of error", async () => {
+    test("and raises an exception in case of error", async function () {
       const reqId = "1234";
 
       MockBinding.createPort("/dev/echoserialport", {
@@ -99,7 +99,7 @@ suite("API Test Suite", () => {
       }
     });
 
-    test("and times out if the response does not come back in time", async () => {
+    test("and times out if the response does not come back in time", async function () {
       const reqId = "1234";
       MockBinding.createPort("/dev/echoserialport", {
         echo: false,

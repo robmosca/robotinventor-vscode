@@ -7,14 +7,56 @@ program the LEGO® MINDSTORMS® Robot Inventor set in MicroPython.
 
 ## Known limitations
 
-- I wrote and tested the extension on macOS. I am not sure if it works in
-  Windows or Linux out of the box
+- I wrote and tested the extension on macOS and Raspbian. I am not sure if it
+  works in Windows out of the box
 - The connection to the Hub only works via USB at the moment. I tried to connect
   via Bluetooth and it somehow works but it's unstable and it fails from time
   to time, still not sure why.
 
 
-## How to use it
+## How to install
+
+***Before** installing the extension, please read the disclaimer at the end of this
+page.*
+
+**Prerequisites**
+
+In order to compile and install the extension you need npm v12.x. If you use
+`nvm` simply `nvm use` inside the repository (make sure the npm version
+specified in `.nvmrc` is installed).
+Also, you need the command line `code` command installed.
+
+**Install the extension**
+
+1. Clone or download the repository
+2. Install the dependencies
+   
+   ```
+   npm install
+   ```
+
+3. You need to re-compile serial IO for the specific version of node used by
+   VS Code
+
+   ```
+   ./node_modules/.bin/electron-rebuild --version 11.2.1
+   ```
+
+4. Make sure `vsce` is installed
+
+   ```
+   npm install -g vsce
+   ```
+
+5. Compile and install the extension
+
+   ```
+   vsce package
+   code --install-extension robotinventor-0.0.1.vsix
+   ```
+
+
+## How to use the extension
 
 After installing the extension open the RI5DEV device browser:
 

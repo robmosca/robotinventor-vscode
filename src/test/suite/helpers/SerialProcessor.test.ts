@@ -10,7 +10,11 @@ chai.use(sinonChai);
 const expect = chai.expect;
 
 suite("SerialProcessor Test Suite", () => {
-  test("Sends the message and processes the reply", async () => {
+  setup(function () {
+    MockBinding.reset();
+  });
+
+  test("Sends the message and processes the reply", async function () {
     const callback = sinon.stub();
     callback.returns({ resolve: true, returnValue: "This is the answer" });
     MockBinding.createPort("/dev/echoserialport", {
@@ -29,7 +33,7 @@ suite("SerialProcessor Test Suite", () => {
     expect(response).to.equal("This is the answer");
   });
 
-  test("Times out after n milliseconds", async () => {
+  test("Times out after n milliseconds", async function () {
     const callback = sinon.stub();
     callback.returns({ resolve: true, returnValue: "This is the answer" });
     MockBinding.createPort("/dev/muteserialport", {

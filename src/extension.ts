@@ -20,6 +20,10 @@ export function activate(context: vscode.ExtensionContext) {
     "ri5devBrowser.action.pickDevice",
     pickDevice
   );
+  const regCommandDisconnectDevice = vscode.commands.registerCommand(
+    "ri5devBrowser.action.disconnectDevice",
+    disconnectDevice
+  );
   const regCommandRunProgram = vscode.commands.registerCommand(
     "ri5devBrowser.runProgram",
     runProgram
@@ -43,6 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     regRi5devBrowserProvider,
     regCommandPickDevice,
+    regCommandDisconnectDevice,
     regCommandRunProgram,
     regCommandStopProgram,
     regCommandMoveProgram,
@@ -81,6 +86,14 @@ async function pickDevice(): Promise<void> {
       }
     }
   );
+}
+
+async function disconnectDevice() {
+  if (isDeviceConnected()) {
+    ri5devBrowserProvider.clearDevice();
+    await device?.disconnect();
+    device = undefined;
+  }
 }
 
 function isDeviceConnected() {

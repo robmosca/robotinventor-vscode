@@ -249,4 +249,20 @@ export class Device extends EventEmitter {
       );
     });
   }
+
+  public disconnect() {
+    return new Promise<void>((resolve, reject) => {
+      if (!this.serialPort) {
+        resolve();
+        return;
+      }
+      this.serialPort?.close(async (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
 }

@@ -1,5 +1,6 @@
 {
   "root": true,
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": 6,
@@ -8,9 +9,12 @@
   "plugins": ["@typescript-eslint"],
   "rules": {
     "@typescript-eslint/naming-convention": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/semi": "warn",
     "curly": "warn",
     "eqeqeq": "warn",
+    "no-empty": "off",
     "no-throw-literal": "warn",
     "semi": "off"
   }

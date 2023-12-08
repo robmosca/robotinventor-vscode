@@ -1,10 +1,11 @@
-import * as SerialPort from "serialport";
-import { EventEmitter } from "events";
-import { askDeviceFromList, askDeviceName } from "./helpers/askDevice";
-import { APIRequest } from "./api";
-import { decodeBase64, encodeBase64 } from "./utils";
+import { SerialPort } from 'serialport';
+import { EventEmitter } from 'events';
+import { APIRequest } from './api';
+import { encodeBase64 } from './utils';
 
-const PROMPT = "\r\n>>> ";
+export type SlotType = 'all' | 'empty' | 'full';
+
+const PROMPT = '\r\n>>> ';
 
 export enum DeviceMode {
   REPL,
@@ -24,7 +25,7 @@ export type SlotInfo = {
   id: number;
   project_id: string;
   modified: Date;
-  type: "python" | "scratch";
+  type: 'python' | 'scratch';
   created: Date;
   size: number;
 };
@@ -40,13 +41,11 @@ export type StorageStatus = {
 
 function checkSlotId(slotId: number) {
   if (slotId < 0 || slotId > 19) {
-    return Promise.reject(
-      new Error(`Invalid program slot index ${slotId}, valid slots: 0-19`)
-    );
+    throw new Error(`Invalid program slot index ${slotId}, valid slots: 0-19`);
   }
 }
 
-export class Device extends EventEmitter {
+class Device extends EventEmitter {
   public ttyDevice: string;
   public name: string;
   public firmwareVersion: string;
@@ -56,31 +55,32 @@ export class Device extends EventEmitter {
 
   constructor(ttyDevice: string) {
     super();
-    this.ttyDevice = ttyDevice;
-    this.name = ttyDevice;
-    this.firmwareVersion = "";
-    this.serialPort = undefined;
     this.devMode = DeviceMode.API;
+    this.firmwareVersion = '';
+    this.name = 'LEGO Hub';
+    this.name = ttyDevice;
+    this.serialPort = undefined;
+    this.ttyDevice = ttyDevice;
   }
 
   private assertDeviceInitialized() {
     if (!this.serialPort) {
-      throw new Error("Device not initialized");
+      throw new Error('Device not initialized');
     }
   }
 
-  private async getPrompt() {
-    return new Promise<void>((resolve, reject) => {
+  private async obtainPrompt() {
+    return new Promise<void>((resolve) => {
       this.assertDeviceInitialized();
       const dataHandler = (data: Buffer) => {
         if (data.toString().endsWith(PROMPT)) {
-          this.serialPort?.removeListener("data", dataHandler);
+          this.serialPort?.removeListener('data', dataHandler);
           this.devMode = DeviceMode.REPL;
           resolve();
         }
       };
-      this.serialPort?.on("data", dataHandler);
-      this.serialPort?.write("\x03");
+      this.serialPort?.on('data', dataHandler);
+      this.serialPort?.write('\x03');
     });
   }
 
@@ -90,23 +90,23 @@ export class Device extends EventEmitter {
     const removeSuffix = (str: string, prefix: string) =>
       str.endsWith(prefix) ? str.substring(0, str.length - prefix.length) : str;
 
-    return new Promise(async (resolve, reject) => {
+    if (this.devMode !== DeviceMode.REPL) {
+      await this.obtainPrompt();
+    }
+
+    return new Promise((resolve, reject) => {
       this.assertDeviceInitialized();
 
-      if (this.devMode !== DeviceMode.REPL) {
-        await this.getPrompt();
-      }
-
-      let output = "";
+      let output = '';
 
       const processData = (data: Buffer) => {
         const stringData = data.toString();
         if (stringData.endsWith(PROMPT)) {
-          this.serialPort?.removeListener("data", processData);
+          this.serialPort?.removeListener('data', processData);
           output += removeSuffix(stringData, PROMPT);
           output = removePrefix(output, cmd);
-          output = removePrefix(output, "... \r\n");
-          if (output.toLowerCase().trim().startsWith("traceback")) {
+          output = removePrefix(output, '... \r\n');
+          if (output.toLowerCase().trim().startsWith('traceback')) {
             reject(new Error(output));
           } else {
             resolve(output);
@@ -116,38 +116,25 @@ export class Device extends EventEmitter {
         }
       };
 
-      this.serialPort?.on("data", processData);
+      this.serialPort?.on('data', processData);
       this.serialPort?.write(Buffer.from(`${cmd}\r\n`));
       this.serialPort?.flush();
     });
   }
 
-  static async selectDevice() {
-    const manualEntry = "I don't see my device...";
-    const selectedItem = await askDeviceFromList(manualEntry);
-
-    if (selectedItem === manualEntry) {
-      const deviceName = await askDeviceName();
-      return deviceName ? new Device(deviceName) : undefined;
-    }
-
-    return selectedItem ? new Device(selectedItem) : undefined;
-  }
-
-  public async retrieveName() {
-    // TODO: Disabling retrieval of name for the moment as this would require
-    // a soft restart to go back to API mode
-    // try {
-    //   const response = await this.execPythonCmd(
-    //     "with open('local_name.txt') as f: print(f.read())\r\n"
-    //   );
-    //   this.name = response;
-    // } catch (err) {
-    //   this.name = "LEGO Hub";
-    // }
-    this.name = "LEGO Hub";
-    this.emit("change");
-  }
+  // TODO: Disabling retrieval of name for the moment as this would require
+  // a soft restart to go back to API mode
+  // async retrieveName() {
+  //   try {
+  //     const response = await this.execPythonCmd(
+  //       "with open('local_name.txt') as f: print(f.read())\r\n",
+  //     );
+  //     this.name = response;
+  //   } catch (err) {
+  //     this.name = 'LEGO Hub';
+  //   }
+  //   this.emit('change');
+  // }
 
   private executeSlotSpecificCommand(cmd: string, slotId: number) {
     this.assertDeviceInitialized();
@@ -157,35 +144,35 @@ export class Device extends EventEmitter {
     });
   }
 
-  public listSlots() {
+  public getSlots() {
     return this.storageStatus?.slots;
   }
 
   public async runProgram(slotId: number) {
-    return this.executeSlotSpecificCommand("program_execute", slotId);
+    return this.executeSlotSpecificCommand('program_execute', slotId);
   }
 
   public async stopProgram() {
     this.assertDeviceInitialized();
-    return APIRequest(this.serialPort!, "program_terminate");
+    return APIRequest(this.serialPort!, 'program_terminate');
   }
 
   public async moveProgram(fromSlotId: number, toSlotId: number) {
     this.assertDeviceInitialized();
     checkSlotId(fromSlotId);
     checkSlotId(toSlotId);
-    await APIRequest(this.serialPort!, "move_project", {
+    await APIRequest(this.serialPort!, 'move_project', {
       old_slotid: fromSlotId,
       new_slotid: toSlotId,
     });
-    await this.retrieveStorageStatus();
-    this.emit("change");
+    await this.refreshStorageStatus();
+    this.emit('change');
   }
 
   public async removeProgram(slotId: number) {
-    await this.executeSlotSpecificCommand("remove_project", slotId);
-    await this.retrieveStorageStatus();
-    this.emit("change");
+    await this.executeSlotSpecificCommand('remove_project', slotId);
+    await this.refreshStorageStatus();
+    this.emit('change');
   }
 
   public async uploadProgram(prgName: string, prgText: string, slotId: number) {
@@ -195,12 +182,12 @@ export class Device extends EventEmitter {
       created: Date.now(),
       modified: Date.now(),
       name: encodeBase64(prgName),
-      project_id: "ScctlpwQVu64", // This seems to be mandatory for python files
-      type: "python",
+      project_id: 'ScctlpwQVu64', // This seems to be mandatory for python files
+      type: 'python',
     };
     const size = prgText.length;
 
-    const start = (await APIRequest(this.serialPort!, "start_write_program", {
+    const start = (await APIRequest(this.serialPort!, 'start_write_program', {
       slotid: slotId,
       size: size,
       meta: meta,
@@ -210,42 +197,41 @@ export class Device extends EventEmitter {
     for (let startPos = 0; startPos < size; startPos += blocksize) {
       const data = prgText.slice(
         startPos,
-        Math.min(startPos + blocksize, size)
+        Math.min(startPos + blocksize, size),
       );
-      await APIRequest(this.serialPort!, "write_package", {
+      await APIRequest(this.serialPort!, 'write_package', {
         data: encodeBase64(data),
         transferid,
       });
     }
-    this.retrieveStorageStatus();
+    this.refreshStorageStatus();
   }
 
-  public async retrieveStorageStatus() {
+  public async refreshStorageStatus() {
     this.assertDeviceInitialized();
     const storageStatus = (await APIRequest(
       this.serialPort!,
-      "get_storage_status",
-      {}
+      'get_storage_status',
+      {},
     )) as StorageStatus;
     this.storageStatus = storageStatus;
-    this.emit("change");
+    this.emit('change');
   }
 
   public connect() {
     return new Promise<void>((resolve, reject) => {
       this.serialPort = new SerialPort(
-        this.ttyDevice,
         {
+          path: this.ttyDevice,
           baudRate: 115200,
         },
         async (err) => {
           if (err) {
             reject(err);
           } else {
-            await this.retrieveName();
             resolve();
           }
-        }
+        },
       );
     });
   }
@@ -265,4 +251,70 @@ export class Device extends EventEmitter {
       });
     });
   }
+}
+
+let device: Device | undefined = undefined;
+
+export function isDeviceConnected() {
+  return !!device;
+}
+
+export async function connectDevice(deviceName: string) {
+  if (isDeviceConnected()) {
+    throw new Error('Device already connected. First disconnect it...');
+  }
+  try {
+    device = new Device(deviceName);
+    await device.connect();
+    return device.refreshStorageStatus();
+  } catch (err) {
+    device = undefined;
+    throw err;
+  }
+}
+
+export async function disconnectDevice() {
+  await device?.disconnect();
+  device = undefined;
+}
+
+export function execMethodOnDeviceSlot(method: string, slotId: number) {
+  if (device) {
+    (device as { [method: string]: any })[method](slotId);
+  }
+}
+
+export function stopProgramOnDevice() {
+  device?.stopProgram();
+}
+
+export function moveProgramOnDevice(fromSlotId: number, toSlotId: number) {
+  device?.moveProgram(fromSlotId, toSlotId);
+}
+
+export function uploadProgramOnDevice(
+  prgName: string,
+  prgText: string,
+  slotId: number,
+) {
+  device?.uploadProgram(prgName, prgText, slotId);
+}
+
+export function getDeviceInfo() {
+  return {
+    name: device?.name || '',
+    firmwareVersion: device?.firmwareVersion || '',
+  };
+}
+
+export function getDeviceSlots() {
+  return device?.getSlots();
+}
+
+export function addDeviceOnChangeCallbak(callback: () => void) {
+  device?.on('change', callback);
+}
+
+export function removeDeviceAllListeners() {
+  device?.removeAllListeners();
 }

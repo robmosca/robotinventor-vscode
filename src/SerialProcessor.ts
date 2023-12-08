@@ -1,4 +1,4 @@
-import * as SerialPort from "serialport";
+import { SerialPort } from 'serialport';
 
 type ProcessingFunctionReturnValue = {
   resolve: boolean;
@@ -6,13 +6,13 @@ type ProcessingFunctionReturnValue = {
 };
 
 type ProcessingFunction = (
-  data: string
+  data: string,
 ) => ProcessingFunctionReturnValue | undefined;
 
 export default class SerialProcessor {
   constructor(
     private serialPort: SerialPort,
-    private processingFunction: ProcessingFunction
+    private processingFunction: ProcessingFunction,
   ) {}
 
   public async sendAndProcess(msg: string, timeout_in_ms: number = 1000) {
@@ -20,11 +20,7 @@ export default class SerialProcessor {
       let timeout: NodeJS.Timeout | undefined = undefined;
 
       const emptyBuffer = () => {
-        while (true) {
-          if (this.serialPort.read() === null) {
-            return;
-          }
-        }
+        while (this.serialPort.read() !== null) {}
       };
 
       const cleanUp = () => {
@@ -32,7 +28,7 @@ export default class SerialProcessor {
           clearTimeout(timeout);
           timeout = undefined;
         }
-        this.serialPort.removeListener("data", processData);
+        this.serialPort.removeListener('data', processData);
       };
 
       const processData = (data: Buffer) => {
@@ -58,14 +54,14 @@ export default class SerialProcessor {
 
       emptyBuffer();
       this.serialPort.write(Buffer.from(msg), errorHandler);
-      this.serialPort.write(Buffer.from("\r"), errorHandler);
+      this.serialPort.write(Buffer.from('\r'), errorHandler);
       this.serialPort.drain((error?: Error | null) => {
         errorHandler(error);
-        this.serialPort.on("data", processData);
+        this.serialPort.on('data', processData);
       });
 
       timeout = setTimeout(() => {
-        this.serialPort.removeListener("data", processData);
+        this.serialPort.removeListener('data', processData);
         reject(new Error(`Timeout while processing message '${msg}'`));
       }, timeout_in_ms);
     });

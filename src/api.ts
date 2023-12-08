@@ -1,37 +1,42 @@
-import * as SerialPort from "serialport";
-import SerialProcessor from "./helpers/SerialProcessor";
-import { decodeBase64, randomId } from "./utils";
+import { SerialPort } from 'serialport';
+import SerialProcessor from './SerialProcessor';
+import { decodeBase64, randomId } from './utils';
 
-export default class API {
+class API {
   constructor(private serialPort: SerialPort) {}
 
-  public async waitAPIready(timeout: number = 2000) {
+  async waitAPIready(timeout: number = 2000) {
     const serialProcessor = new SerialProcessor(this.serialPort, (data) => {
       if (data.startsWith('{"m":0')) {
         return { resolve: true };
       }
+      return { resolve: false };
     });
 
-    return serialProcessor.sendAndProcess("\x04", timeout);
+    return serialProcessor.sendAndProcess('\x04', timeout);
   }
 
   public async sendRequest(
     request: string,
     params: object,
     timeout_in_ms: number = 5000,
-    reqId?: string
+    reqId?: string,
   ): Promise<unknown> {
     const id = reqId ?? randomId();
     const msg = { m: request, p: params, i: id };
     const serializedMsg = JSON.stringify(msg);
-    let response = "";
+    let response = '';
     const serialProcessor = new SerialProcessor(this.serialPort, (data) => {
-      const crPos = data.indexOf("\r");
+      const crPos = data.indexOf('\r');
       if (crPos !== -1) {
         const accData = response + data;
-        const lines = accData.split("\r");
+        const lines = accData.split('\r');
         for (let i = 0; i < lines.length - 1; ++i) {
-          let parsedLine: any = {};
+          let parsedLine: {
+            e?: string;
+            i?: string;
+            r?: unknown;
+          } = {};
 
           try {
             parsedLine = JSON.parse(lines[i]);
@@ -50,6 +55,7 @@ export default class API {
       } else {
         response += data;
       }
+      return { resolve: false };
     });
 
     return serialProcessor.sendAndProcess(`${serializedMsg}`, timeout_in_ms);
@@ -60,7 +66,11 @@ export function APIRequest(
   serialPort: SerialPort,
   request: string,
   params: object = {},
-  timeout_in_ms: number = 5000
+  timeout_in_ms: number = 5000,
 ) {
   return new API(serialPort).sendRequest(request, params, timeout_in_ms);
 }
+
+export const _testing = {
+  API,
+};

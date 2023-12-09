@@ -1,4 +1,4 @@
-import { SerialPort } from 'serialport';
+import { SerialPort, SerialPortMock } from 'serialport';
 
 type ProcessingFunctionReturnValue = {
   resolve: boolean;
@@ -11,17 +11,13 @@ type ProcessingFunction = (
 
 export default class SerialProcessor {
   constructor(
-    private serialPort: SerialPort,
+    private serialPort: SerialPort | SerialPortMock,
     private processingFunction: ProcessingFunction,
   ) {}
 
-  public async sendAndProcess(msg: string, timeout_in_ms: number = 1000) {
+  async sendAndProcess(msg: string, timeout_in_ms: number = 1000) {
     return new Promise((resolve, reject) => {
       let timeout: NodeJS.Timeout | undefined = undefined;
-
-      const emptyBuffer = () => {
-        while (this.serialPort.read() !== null) {}
-      };
 
       const cleanUp = () => {
         if (timeout) {
@@ -52,7 +48,6 @@ export default class SerialProcessor {
         }
       };
 
-      emptyBuffer();
       this.serialPort.write(Buffer.from(msg), errorHandler);
       this.serialPort.write(Buffer.from('\r'), errorHandler);
       this.serialPort.drain((error?: Error | null) => {

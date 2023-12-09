@@ -33,8 +33,8 @@ export class DeviceTreeItem extends vscode.TreeItem {
 }
 
 export class ProgramSlotTreeItem extends vscode.TreeItem {
-  public index: number;
-  public slot: SlotInfo | undefined;
+  index: number;
+  slot: SlotInfo | undefined;
 
   constructor(index: number, slot?: SlotInfo) {
     const name = slot ? decodeBase64(slot.name) : '';
@@ -72,11 +72,11 @@ export class Ri5devBrowserProvider
     BrowserTreeItem | undefined | null | void
   > = this._onDidChangeTreeData.event;
 
-  public getTreeItem(element: DeviceTreeItem): vscode.TreeItem {
+  getTreeItem(element: DeviceTreeItem): vscode.TreeItem {
     return element;
   }
 
-  public getChildren(
+  getChildren(
     element?: BrowserTreeItem,
   ): vscode.ProviderResult<BrowserTreeItem[]> {
     if (!element) {
@@ -91,7 +91,7 @@ export class Ri5devBrowserProvider
     }
   }
 
-  public refreshDevice() {
+  refreshDevice() {
     this.device = new DeviceTreeItem();
     addDeviceOnChangeCallbak(() => {
       this.device?.refresh();
@@ -100,7 +100,7 @@ export class Ri5devBrowserProvider
     this._onDidChangeTreeData.fire();
   }
 
-  public clearDevice() {
+  clearDevice() {
     removeDeviceAllListeners();
     this.device = undefined;
     this._onDidChangeTreeData.fire();

@@ -27,7 +27,7 @@ class API {
     return serialProcessor.sendAndProcess('\x04', timeout);
   }
 
-  public async sendRequest(
+  async sendRequest(
     request: string,
     params: object,
     timeout_in_ms: number = 5000,

@@ -46,12 +46,12 @@ function checkSlotId(slotId: number) {
 }
 
 class Device extends EventEmitter {
-  public ttyDevice: string;
-  public name: string;
-  public firmwareVersion: string;
-  public serialPort: SerialPort | undefined;
-  public devMode: DeviceMode;
-  public storageStatus: StorageStatus | undefined;
+  ttyDevice: string;
+  name: string;
+  firmwareVersion: string;
+  serialPort: SerialPort | undefined;
+  devMode: DeviceMode;
+  storageStatus: StorageStatus | undefined;
 
   constructor(ttyDevice: string) {
     super();
@@ -144,15 +144,15 @@ class Device extends EventEmitter {
     });
   }
 
-  public getSlots() {
+  getSlots() {
     return this.storageStatus?.slots;
   }
 
-  public async runProgram(slotId: number) {
+  async runProgram(slotId: number) {
     return this.executeSlotSpecificCommand('program_execute', slotId);
   }
 
-  public async stopProgram() {
+  async stopProgram() {
     this.assertConnected();
     return APIRequest(
       this.serialPort!,
@@ -168,7 +168,7 @@ class Device extends EventEmitter {
     );
   }
 
-  public async moveProgram(fromSlotId: number, toSlotId: number) {
+  async moveProgram(fromSlotId: number, toSlotId: number) {
     this.assertConnected();
     checkSlotId(fromSlotId);
     checkSlotId(toSlotId);
@@ -180,13 +180,13 @@ class Device extends EventEmitter {
     this.emit('change');
   }
 
-  public async removeProgram(slotId: number) {
+  async removeProgram(slotId: number) {
     await this.executeSlotSpecificCommand('remove_project', slotId);
     await this.refreshStorageStatus();
     this.emit('change');
   }
 
-  public async uploadProgram(prgName: string, prgText: string, slotId: number) {
+  async uploadProgram(prgName: string, prgText: string, slotId: number) {
     checkSlotId(slotId);
 
     const meta = {
@@ -218,7 +218,7 @@ class Device extends EventEmitter {
     this.refreshStorageStatus();
   }
 
-  public async refreshStorageStatus() {
+  async refreshStorageStatus() {
     this.assertConnected();
     const storageStatus = (await APIRequest(
       this.serialPort!,
@@ -229,7 +229,7 @@ class Device extends EventEmitter {
     this.emit('change');
   }
 
-  public connect() {
+  connect() {
     return new Promise<void>((resolve, reject) => {
       this.serialPort = new SerialPort(
         {

@@ -133,9 +133,9 @@ async function connectDeviceCmd(): Promise<void> {
       title: 'Connecting...',
     },
     async () => {
-      ri5devBrowserProvider.refreshDevice();
       try {
         await connectDevice(deviceName);
+        ri5devBrowserProvider.refreshDevice();
         showTemporaryStatusBarMessage(`Connected`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : err;

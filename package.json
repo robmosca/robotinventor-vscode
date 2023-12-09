@@ -2,7 +2,7 @@
   "name": "robotinventor",
   "displayName": "robotinventor",
   "description": "A Microsoft Visual Studio Code extension to program LEGO® Mindstorms® Robot Inventor in MicroPython",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publisher": "robmosca",
   "repository": "https://github.com/robmosca/robotinventor-vscode",
   "engines": {
@@ -22,37 +22,37 @@
       {
         "command": "ri5devBrowser.action.connectDevice",
         "title": "Connect to a device",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       },
       {
         "command": "ri5devBrowser.action.disconnectDevice",
         "title": "Disconnect",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       },
       {
         "command": "ri5devBrowser.runProgram",
         "title": "Run program",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       },
       {
         "command": "ri5devBrowser.stopProgram",
         "title": "Stop program",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       },
       {
         "command": "ri5devBrowser.moveProgram",
         "title": "Move program",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       },
       {
         "command": "ri5devBrowser.removeProgram",
         "title": "Remove program",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       },
       {
         "command": "ri5devBrowser.uploadProgram",
         "title": "Upload program",
-        "category": "ri5dev"
+        "category": "Robot Inventor"
       }
     ],
     "menus": {
@@ -87,7 +87,7 @@
       "explorer": [
         {
           "id": "ri5devBrowser",
-          "name": "ri5dev device browser"
+          "name": "Robot Inventor Device Browser"
         }
       ]
     },
@@ -99,16 +99,18 @@
     ]
   },
   "scripts": {
+    "clean": "rimraf ./out",
     "compile": "tsc -p ./",
     "coverage": "nyc npm test",
     "lint": "eslint src --ext ts",
-    "pretest": "npm run compile && npm run lint",
-    "test": "node ./out/test/runTest.js",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "test": "vscode-test",
     "typecheck": "tsc --noEmit -p ./",
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "pnpm run compile",
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.4.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@types/chai": "^4.2.14",
     "@types/glob": "^8.1.0",
@@ -120,9 +122,10 @@
     "@types/vscode": "^1.53.0",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
     "chai": "^4.2.0",
     "chai-match": "^1.1.1",
-    "electron-rebuild": "^3.2.9",
     "eslint": "^8.55.0",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
@@ -132,8 +135,7 @@
     "sinon-chai": "^3.5.0",
     "ts-mock-imports": "^1.3.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.3.3",
-    "vscode-test": "^1.4.0"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "serialport": "^12.0.0"

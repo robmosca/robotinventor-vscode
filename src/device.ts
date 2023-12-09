@@ -63,7 +63,7 @@ class Device extends EventEmitter {
     this.ttyDevice = ttyDevice;
   }
 
-  private assertDeviceInitialized() {
+  private assertConnected() {
     if (!this.serialPort) {
       throw new Error('Device not initialized');
     }
@@ -71,7 +71,7 @@ class Device extends EventEmitter {
 
   private async obtainPrompt() {
     return new Promise<void>((resolve) => {
-      this.assertDeviceInitialized();
+      this.assertConnected();
       const dataHandler = (data: Buffer) => {
         if (data.toString().endsWith(PROMPT)) {
           this.serialPort?.removeListener('data', dataHandler);
@@ -95,7 +95,7 @@ class Device extends EventEmitter {
     }
 
     return new Promise((resolve, reject) => {
-      this.assertDeviceInitialized();
+      this.assertConnected();
 
       let output = '';
 
@@ -137,7 +137,7 @@ class Device extends EventEmitter {
   // }
 
   private executeSlotSpecificCommand(cmd: string, slotId: number) {
-    this.assertDeviceInitialized();
+    this.assertConnected();
     checkSlotId(slotId);
     return APIRequest(this.serialPort!, cmd, {
       slotid: slotId,
@@ -153,12 +153,23 @@ class Device extends EventEmitter {
   }
 
   public async stopProgram() {
-    this.assertDeviceInitialized();
-    return APIRequest(this.serialPort!, 'program_terminate');
+    this.assertConnected();
+    return APIRequest(
+      this.serialPort!,
+      'program_terminate',
+      {},
+      5000,
+      (line) => {
+        if (line.includes('SystemExit:')) {
+          return { resolve: true };
+        }
+        return { resolve: false };
+      },
+    );
   }
 
   public async moveProgram(fromSlotId: number, toSlotId: number) {
-    this.assertDeviceInitialized();
+    this.assertConnected();
     checkSlotId(fromSlotId);
     checkSlotId(toSlotId);
     await APIRequest(this.serialPort!, 'move_project', {
@@ -208,7 +219,7 @@ class Device extends EventEmitter {
   }
 
   public async refreshStorageStatus() {
-    this.assertDeviceInitialized();
+    this.assertConnected();
     const storageStatus = (await APIRequest(
       this.serialPort!,
       'get_storage_status',
@@ -227,6 +238,7 @@ class Device extends EventEmitter {
         },
         async (err) => {
           if (err) {
+            this.serialPort = undefined;
             reject(err);
           } else {
             resolve();
@@ -236,7 +248,7 @@ class Device extends EventEmitter {
     });
   }
 
-  public disconnect() {
+  disconnect() {
     return new Promise<void>((resolve, reject) => {
       if (!this.serialPort) {
         resolve();
@@ -246,10 +258,15 @@ class Device extends EventEmitter {
         if (err) {
           reject(err);
         } else {
+          this.serialPort = undefined;
           resolve();
         }
       });
     });
+  }
+
+  isConnected() {
+    return !!this.serialPort;
   }
 }
 
@@ -266,8 +283,15 @@ export async function connectDevice(deviceName: string) {
   try {
     device = new Device(deviceName);
     await device.connect();
+  } catch (err) {
+    device = undefined;
+    throw err;
+  }
+
+  try {
     return device.refreshStorageStatus();
   } catch (err) {
+    await device?.disconnect();
     device = undefined;
     throw err;
   }

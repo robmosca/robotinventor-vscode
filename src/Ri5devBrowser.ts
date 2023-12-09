@@ -16,6 +16,7 @@ export class DeviceTreeItem extends vscode.TreeItem {
     this.tooltip = name;
     this.description = 'No version available';
     this.contextValue = 'device';
+    this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
   }
 
   iconPath = {
@@ -96,12 +97,12 @@ export class Ri5devBrowserProvider
       this.device?.refresh();
       this._onDidChangeTreeData.fire();
     });
-
     this._onDidChangeTreeData.fire();
   }
 
   public clearDevice() {
     removeDeviceAllListeners();
+    this.device = undefined;
     this._onDidChangeTreeData.fire();
   }
 }

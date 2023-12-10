@@ -99,9 +99,8 @@
     ]
   },
   "scripts": {
-    "clean": "rimraf ./out",
+    "clean": "rm -rf ./out",
     "compile": "tsc -p ./",
-    "coverage": "nyc npm test",
     "lint": "eslint src --ext ts",
     "pretest": "pnpm run compile && pnpm run lint",
     "test": "vscode-test",
@@ -125,32 +124,11 @@
     "eslint": "^8.55.0",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
-    "nyc": "^15.1.0",
     "prettier": "^3.1.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
     "serialport": "^12.0.0"
-  },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
-    "require": [
-      "ts-node/register",
-      "source-map-support/register"
-    ],
-    "include": [
-      "src/**/*.ts",
-      "out/**/*.js"
-    ],
-    "exclude": [
-      "src/test/*"
-    ],
-    "reporter": [
-      "text-summary",
-      "html",
-      "lcov"
-    ],
-    "report-dir": "out/coverage"
   },
   "packageManager": "pnpm@8.11.0"
 }

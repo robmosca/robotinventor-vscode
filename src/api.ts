@@ -1,4 +1,4 @@
-import { SerialPort } from 'serialport';
+import { SerialPort, SerialPortMock } from 'serialport';
 import SerialProcessor from './SerialProcessor';
 import { decodeBase64, randomId } from './utils';
 
@@ -14,18 +14,7 @@ type ProcessingFunctionReturnValue = {
 };
 
 class API {
-  constructor(private serialPort: SerialPort) {}
-
-  async waitAPIready(timeout: number = 2000) {
-    const serialProcessor = new SerialProcessor(this.serialPort, (data) => {
-      if (data.startsWith('{"m":0')) {
-        return { resolve: true };
-      }
-      return { resolve: false };
-    });
-
-    return serialProcessor.sendAndProcess('\x04', timeout);
-  }
+  constructor(private serialPort: SerialPort | SerialPortMock) {}
 
   async sendRequest(
     request: string,
@@ -85,20 +74,18 @@ class API {
 }
 
 export function APIRequest(
-  serialPort: SerialPort,
+  serialPort: SerialPort | SerialPortMock,
   request: string,
   params: object = {},
   timeout_in_ms: number = 5000,
   cmdResolver?: (line: string) => ProcessingFunctionReturnValue,
+  reqId?: string,
 ) {
   return new API(serialPort).sendRequest(
     request,
     params,
     timeout_in_ms,
     cmdResolver,
+    reqId,
   );
 }
-
-export const _testing = {
-  API,
-};

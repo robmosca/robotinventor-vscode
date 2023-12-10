@@ -21,30 +21,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: 18.19.0
-
       - name: Install Pnpm
         uses: pnpm/action-setup@v2.0.1
         with:
           version: 8.11.0
 
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.19.0
+          cache: pnpm
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - run: ./node_modules/.bin/electron-rebuild --version 11.2.1
-
-      - run: xvfb-run -a npm test
+      - run: xvfb-run -a pnpm run test
         if: runner.os == 'Linux'
 
-      - run: npm run coverage
-        if: runner.os != 'Linux'
-
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ./out/coverage/lcov.info
-        if: runner.os != 'Linux'
+      - run: pnpm run test
+        if: runner.os == 'macOS'

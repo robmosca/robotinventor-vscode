@@ -1,5 +1,3 @@
-[![Coverage Status](https://coveralls.io/repos/github/robmosca/robotinventor-vscode/badge.svg)](https://coveralls.io/github/robmosca/robotinventor-vscode)
-
 # VScode extension for the Robot inventor set
 
 This is my attempt at writing a Microsoft Visual Studio Code extension to
@@ -13,11 +11,10 @@ program the LEGO® MINDSTORMS® Robot Inventor set in MicroPython.
   via Bluetooth and it somehow works but it's unstable and it fails from time
   to time, still not sure why.
 
-
 ## How to install
 
-***Before** installing the extension, please read the disclaimer at the end of this
-page.*
+**\*Before** installing the extension, please read the disclaimer at the end of this
+page.\*
 
 **Prerequisites**
 
@@ -30,7 +27,7 @@ Also, you need the command line `code` command installed.
 
 1. Clone or download the repository
 2. Install the dependencies
-   
+
    ```
    npm install
    ```
@@ -54,7 +51,6 @@ Also, you need the command line `code` command installed.
    vsce package
    code --install-extension robotinventor-0.0.1.vsix
    ```
-
 
 ## How to use the extension
 
@@ -91,11 +87,12 @@ Since there is no official documentation for the API, the implementation is base
 on what I could discover empirically.
 I also obtained information from the following repositories, based on the LEGO®
 Education SPIKE™️ Prime Set:
+
 - [gpdaniels/spike-prime](https://github.com/gpdaniels/spike-prime/blob/master/specifications/stm32f413.pdf)
 - [nutki/spike-tools](https://github.com/nutki/spike-tools)
 - [sanjayseshan/spikeprime-tools](https://github.com/sanjayseshan/spikeprime-tools)
 
-I based my implementation on the excellent work of David Lechner (for EV3): 
+I based my implementation on the excellent work of David Lechner (for EV3):
 
 [ev3dev/vscode-ev3dev-browser](https://github.com/ev3dev/vscode-ev3dev-browser)
 

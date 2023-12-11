@@ -23,8 +23,12 @@ describe('Device', () => {
 
   afterEach(() => {
     SerialPortMock.binding.reset();
-    APIRequestStub.restore();
+    APIRequestStub.reset();
     disconnectDevice();
+  });
+
+  after(() => {
+    APIRequestStub.restore();
   });
 
   const createPortMock = (data: string, opts?: any) => {
@@ -107,14 +111,18 @@ describe('Device', () => {
       expect(error?.message).to.match(/^Port does not exist/);
     });
 
-    // it('should throw an error if refreshing storage status fails', async function () {
-    //   // Arrange
-    //   const deviceName = 'MyDevice';
+    it('should throw an error if refreshing storage status fails', async function () {
+      createPortMock('');
+      APIRequestStub.rejects(new Error('Some error'));
 
-    //   // Act and Assert
-    //   await expect(connectDevice(deviceName)).to.be.rejectedWith(
-    //     'Failed to refresh storage status',
-    //   );
-    // });
+      let error: Error | undefined = undefined;
+      try {
+        await connectDevice(deviceName);
+      } catch (err) {
+        expect(err).instanceOf(Error);
+        error = err as Error;
+      }
+      expect(error?.message).to.be.equal('Some error');
+    });
   });
 });

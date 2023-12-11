@@ -1,11 +1,15 @@
-import { SerialPort } from 'serialport';
+import { SerialPort, SerialPortMock } from 'serialport';
 import { EventEmitter } from 'events';
 import { APIRequest } from './api';
 import { encodeBase64 } from './utils';
 
-export type SlotType = 'all' | 'empty' | 'full';
+const _testing: {
+  SerialPortType: typeof SerialPort | typeof SerialPortMock;
+} = {
+  SerialPortType: SerialPort,
+};
 
-const PROMPT = '\r\n>>> ';
+export type SlotType = 'all' | 'empty' | 'full';
 
 export enum DeviceMode {
   REPL,
@@ -49,7 +53,7 @@ class Device extends EventEmitter {
   ttyDevice: string;
   name: string;
   firmwareVersion: string;
-  serialPort: SerialPort | undefined;
+  serialPort: SerialPort | SerialPortMock | undefined;
   devMode: DeviceMode;
   storageStatus: StorageStatus | undefined;
 
@@ -68,73 +72,6 @@ class Device extends EventEmitter {
       throw new Error('Device not initialized');
     }
   }
-
-  private async obtainPrompt() {
-    return new Promise<void>((resolve) => {
-      this.assertConnected();
-      const dataHandler = (data: Buffer) => {
-        if (data.toString().endsWith(PROMPT)) {
-          this.serialPort?.removeListener('data', dataHandler);
-          this.devMode = DeviceMode.REPL;
-          resolve();
-        }
-      };
-      this.serialPort?.on('data', dataHandler);
-      this.serialPort?.write('\x03');
-    });
-  }
-
-  private async execPythonCmd(cmd: string): Promise<string> {
-    const removePrefix = (str: string, prefix: string) =>
-      str.startsWith(prefix) ? str.substring(prefix.length) : str;
-    const removeSuffix = (str: string, prefix: string) =>
-      str.endsWith(prefix) ? str.substring(0, str.length - prefix.length) : str;
-
-    if (this.devMode !== DeviceMode.REPL) {
-      await this.obtainPrompt();
-    }
-
-    return new Promise((resolve, reject) => {
-      this.assertConnected();
-
-      let output = '';
-
-      const processData = (data: Buffer) => {
-        const stringData = data.toString();
-        if (stringData.endsWith(PROMPT)) {
-          this.serialPort?.removeListener('data', processData);
-          output += removeSuffix(stringData, PROMPT);
-          output = removePrefix(output, cmd);
-          output = removePrefix(output, '... \r\n');
-          if (output.toLowerCase().trim().startsWith('traceback')) {
-            reject(new Error(output));
-          } else {
-            resolve(output);
-          }
-        } else {
-          output += stringData;
-        }
-      };
-
-      this.serialPort?.on('data', processData);
-      this.serialPort?.write(Buffer.from(`${cmd}\r\n`));
-      this.serialPort?.flush();
-    });
-  }
-
-  // TODO: Disabling retrieval of name for the moment as this would require
-  // a soft restart to go back to API mode
-  // async retrieveName() {
-  //   try {
-  //     const response = await this.execPythonCmd(
-  //       "with open('local_name.txt') as f: print(f.read())\r\n",
-  //     );
-  //     this.name = response;
-  //   } catch (err) {
-  //     this.name = 'LEGO Hub';
-  //   }
-  //   this.emit('change');
-  // }
 
   private executeSlotSpecificCommand(cmd: string, slotId: number) {
     this.assertConnected();
@@ -231,7 +168,7 @@ class Device extends EventEmitter {
 
   connect() {
     return new Promise<void>((resolve, reject) => {
-      this.serialPort = new SerialPort(
+      this.serialPort = new _testing.SerialPortType(
         {
           path: this.ttyDevice,
           baudRate: 115200,
@@ -342,3 +279,5 @@ export function addDeviceOnChangeCallbak(callback: () => void) {
 export function removeDeviceAllListeners() {
   device?.removeAllListeners();
 }
+
+export { _testing };

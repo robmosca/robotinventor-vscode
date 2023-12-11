@@ -115,6 +115,8 @@
     "@types/mocha": "^10.0.6",
     "@types/node": "^18.19.3",
     "@types/serialport": "^8.0.1",
+    "@types/sinon": "^17.0.2",
+    "@types/sinon-chai": "^3.2.12",
     "@types/vscode": "^1.53.0",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
@@ -125,6 +127,8 @@
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
     "prettier": "^3.1.0",
+    "sinon": "^17.0.1",
+    "sinon-chai": "^3.7.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {

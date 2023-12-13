@@ -40,33 +40,37 @@ describe('Device', () => {
     });
   };
 
+  const stubConnect = () => {
+    APIRequestStub.resolves({
+      storage: { total: 100, used: 50, available: 50 },
+      slots: {
+        1: {
+          name: 'Program 1',
+          id: 1,
+          project_id: 'asi3',
+          modified: new Date(),
+          type: 'python',
+          created: new Date(),
+          size: 123,
+        },
+        2: {
+          name: 'Program 2',
+          id: 2,
+          project_id: 'erhw',
+          modified: new Date(),
+          type: 'python',
+          created: new Date(),
+          size: 321,
+        },
+      },
+    });
+  };
+
   describe('connectDevice', function () {
     it('should connect to the device and refresh storage status', async function () {
       // Arrange
       createPortMock('');
-      APIRequestStub.resolves({
-        storage: { total: 100, used: 50, available: 50 },
-        slots: {
-          1: {
-            name: 'Program 1',
-            id: 1,
-            project_id: 'asi3',
-            modified: new Date(),
-            type: 'python',
-            created: new Date(),
-            size: 123,
-          },
-          2: {
-            name: 'Program 2',
-            id: 2,
-            project_id: 'erhw',
-            modified: new Date(),
-            type: 'python',
-            created: new Date(),
-            size: 321,
-          },
-        },
-      });
+      stubConnect();
 
       await connectDevice(deviceName);
 
@@ -123,6 +127,27 @@ describe('Device', () => {
         error = err as Error;
       }
       expect(error?.message).to.be.equal('Some error');
+    });
+  });
+
+  describe('disconnectDevice', function () {
+    it('should disconnect the device', async function () {
+      createPortMock('');
+      stubConnect();
+
+      await connectDevice(deviceName);
+
+      expect(isDeviceConnected()).to.be.true;
+
+      await disconnectDevice();
+
+      expect(isDeviceConnected()).to.be.false;
+    });
+
+    it('should do nothing if the device is not connected', async function () {
+      await disconnectDevice();
+
+      expect(isDeviceConnected()).to.be.false;
     });
   });
 });

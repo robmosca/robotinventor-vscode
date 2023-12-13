@@ -1,5 +1,10 @@
 import { expect } from 'chai';
-import { decodeBase64, encodeBase64, formatFilesize, randomId } from '../utils';
+import {
+  decodeBase64,
+  encodeBase64,
+  formatFilesize,
+  randomId,
+} from '../../utils';
 
 describe('Utils', function () {
   describe('randomId', function () {

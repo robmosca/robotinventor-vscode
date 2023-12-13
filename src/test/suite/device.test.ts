@@ -13,12 +13,12 @@ import {
   getDeviceInfo,
   removeDeviceAllListeners,
   listDevices,
-} from '../device';
+} from '../../device';
 import { SerialPortMock } from 'serialport';
 import * as chai from 'chai';
 import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
-import * as api from '../api';
+import * as api from '../../api';
 
 chai.use(sinonChai);
 const expect = chai.expect;

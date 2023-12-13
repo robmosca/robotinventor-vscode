@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { APIRequest } from '../api';
+import { APIRequest } from '../../api';
 import { SerialPortMock } from 'serialport';
 
 describe('API Test Suite', function () {

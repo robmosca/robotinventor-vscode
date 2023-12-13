@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { SerialPortMock } from 'serialport';
-import SerialProcessor from '../SerialProcessor';
+import SerialProcessor from '../../SerialProcessor';
 
 describe('SerialProcessor', () => {
   const defaultPath = '/dev/mock';

@@ -103,7 +103,7 @@
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "pretest": "pnpm run compile && pnpm run lint",
-    "test": "vscode-test",
+    "test": "node ./out/test/runTest.js",
     "typecheck": "tsc --noEmit -p ./",
     "vscode:prepublish": "pnpm run compile",
     "watch": "tsc -watch -p ./"
@@ -120,7 +120,6 @@
     "@types/vscode": "^1.53.0",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
-    "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.8",
     "chai": "^4.2.0",
     "eslint": "^8.55.0",

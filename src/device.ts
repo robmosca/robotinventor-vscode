@@ -152,7 +152,7 @@ class Device extends EventEmitter {
         transferid,
       });
     }
-    this.refreshStorageStatus();
+    return this.refreshStorageStatus();
   }
 
   async refreshStorageStatus() {
@@ -239,10 +239,12 @@ export async function disconnectDevice() {
   device = undefined;
 }
 
-export function execMethodOnDeviceSlot(method: string, slotId: number) {
-  if (device) {
-    (device as { [method: string]: any })[method](slotId);
-  }
+export async function runProgramOnDevice(slotId: number) {
+  return device?.runProgram(slotId);
+}
+
+export async function removeProgramFromDevice(slotId: number) {
+  return device?.removeProgram(slotId);
 }
 
 export function stopProgramOnDevice() {
@@ -253,12 +255,12 @@ export function moveProgramOnDevice(fromSlotId: number, toSlotId: number) {
   device?.moveProgram(fromSlotId, toSlotId);
 }
 
-export function uploadProgramOnDevice(
+export function uploadProgramToDevice(
   prgName: string,
   prgText: string,
   slotId: number,
 ) {
-  device?.uploadProgram(prgName, prgText, slotId);
+  return device?.uploadProgram(prgName, prgText, slotId);
 }
 
 export function getDeviceInfo() {

@@ -3,6 +3,10 @@ import {
   _testing,
   isDeviceConnected,
   disconnectDevice,
+  runProgramOnDevice,
+  removeProgramFromDevice,
+  uploadProgramToDevice,
+  getDeviceSlots,
 } from '../device';
 import { SerialPortMock } from 'serialport';
 import * as chai from 'chai';
@@ -16,6 +20,26 @@ const expect = chai.expect;
 describe('Device', () => {
   const deviceName = '/dev/mock';
   const APIRequestStub = sinon.stub(api, 'APIRequest');
+  const defaultSlots = {
+    1: {
+      name: 'Program 1',
+      id: 1,
+      project_id: 'asi3',
+      modified: new Date(),
+      type: 'python',
+      created: new Date(),
+      size: 123,
+    },
+    2: {
+      name: 'Program 2',
+      id: 2,
+      project_id: 'erhw',
+      modified: new Date(),
+      type: 'python',
+      created: new Date(),
+      size: 321,
+    },
+  };
 
   beforeEach(() => {
     _testing.SerialPortType = SerialPortMock;
@@ -40,37 +64,20 @@ describe('Device', () => {
     });
   };
 
-  const stubConnect = () => {
-    APIRequestStub.resolves({
+  const getStorageInfo = (additionalSlots?: any) => {
+    return {
       storage: { total: 100, used: 50, available: 50 },
       slots: {
-        1: {
-          name: 'Program 1',
-          id: 1,
-          project_id: 'asi3',
-          modified: new Date(),
-          type: 'python',
-          created: new Date(),
-          size: 123,
-        },
-        2: {
-          name: 'Program 2',
-          id: 2,
-          project_id: 'erhw',
-          modified: new Date(),
-          type: 'python',
-          created: new Date(),
-          size: 321,
-        },
+        ...defaultSlots,
+        ...additionalSlots,
       },
-    });
+    };
   };
 
   describe('connectDevice', function () {
     it('should connect to the device and refresh storage status', async function () {
-      // Arrange
       createPortMock('');
-      stubConnect();
+      APIRequestStub.resolves(getStorageInfo());
 
       await connectDevice(deviceName);
 
@@ -85,7 +92,6 @@ describe('Device', () => {
     });
 
     it('should throw an error if the device is already connected', async function () {
-      // Arrange
       createPortMock('');
 
       await connectDevice(deviceName);
@@ -133,7 +139,7 @@ describe('Device', () => {
   describe('disconnectDevice', function () {
     it('should disconnect the device', async function () {
       createPortMock('');
-      stubConnect();
+      APIRequestStub.resolves(getStorageInfo());
 
       await connectDevice(deviceName);
 
@@ -148,6 +154,165 @@ describe('Device', () => {
       await disconnectDevice();
 
       expect(isDeviceConnected()).to.be.false;
+    });
+  });
+
+  describe('runProgramOnDevice', function () {
+    it('should run a program on a device slot', async function () {
+      createPortMock('');
+      APIRequestStub.resolves(getStorageInfo());
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.reset();
+      APIRequestStub.resolves({});
+
+      runProgramOnDevice(12);
+
+      expect(APIRequestStub).to.have.been.calledOnce;
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'program_execute',
+        { slotid: 12 },
+      );
+    });
+
+    it('should throw an error if the slot is not valid', async function () {
+      createPortMock('');
+      APIRequestStub.resolves(getStorageInfo());
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.reset();
+      APIRequestStub.resolves({});
+
+      let error: Error | undefined = undefined;
+      try {
+        await runProgramOnDevice(24);
+      } catch (err) {
+        expect(err).instanceOf(Error);
+        error = err as Error;
+      }
+      expect(error?.message).to.be.equal(
+        'Invalid program slot index 24, valid slots: 0-19',
+      );
+    });
+  });
+
+  describe('removeProgramFromDevice', function () {
+    it('should remove a program from a device slot', async function () {
+      createPortMock('');
+      APIRequestStub.resolves(getStorageInfo());
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.reset();
+      APIRequestStub.resolves({});
+
+      removeProgramFromDevice(12);
+
+      expect(APIRequestStub).to.have.been.calledOnce;
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'remove_project',
+        { slotid: 12 },
+      );
+    });
+
+    it('should throw an error if the slot is not valid', async function () {
+      createPortMock('');
+      APIRequestStub.resolves(getStorageInfo());
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.reset();
+      APIRequestStub.resolves({});
+
+      let error: Error | undefined = undefined;
+      try {
+        await removeProgramFromDevice(24);
+      } catch (err) {
+        expect(err).instanceOf(Error);
+        error = err as Error;
+      }
+      expect(error?.message).to.be.equal(
+        'Invalid program slot index 24, valid slots: 0-19',
+      );
+    });
+  });
+
+  describe('uploadProgramToDevice', function () {
+    it('should upload a program to a device slot', async function () {
+      const additionalSlots = {
+        3: {
+          name: 'Program 3',
+          id: 3,
+          project_id: '2g3e',
+          modified: new Date(),
+          type: 'python',
+          created: new Date(),
+          size: 321,
+        },
+      };
+      createPortMock('');
+      APIRequestStub.resolves(getStorageInfo());
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.callsFake((port, method) => {
+        if (method === 'start_write_program') {
+          return Promise.resolve({ blocksize: 16, transferid: 'a123' });
+        } else if (method === 'get_storage_status') {
+          return Promise.resolve(getStorageInfo(additionalSlots));
+        } else {
+          return Promise.resolve({});
+        }
+      });
+      const prgText = `
+        print("Hello world")
+        print("This is a sample program")
+        print("It only prints stuff...")
+        print("...but it's a good start!")
+      `;
+      const size = prgText.length;
+
+      await uploadProgramToDevice('Program 3', prgText, 12);
+
+      expect(APIRequestStub.callCount).to.equal(14);
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'start_write_program',
+        {
+          slotid: 12,
+          size,
+          meta: {
+            created: sinon.match.any,
+            modified: sinon.match.any,
+            name: 'UHJvZ3JhbSAz',
+            project_id: 'ScctlpwQVu64', // This seems to be mandatory for python files
+            type: 'python',
+          },
+        },
+      );
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'write_package',
+        {
+          data: sinon.match.any,
+          transferid: 'a123',
+        },
+      );
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'get_storage_status',
+        {},
+      );
+
+      const slots = await getDeviceSlots();
+      expect(slots).to.deep.equal({
+        ...defaultSlots,
+        ...additionalSlots,
+      });
     });
   });
 });

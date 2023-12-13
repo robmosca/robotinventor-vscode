@@ -4,12 +4,13 @@ import {
   SlotType,
   connectDevice,
   disconnectDevice,
-  execMethodOnDeviceSlot,
   getDeviceSlots,
   isDeviceConnected,
   moveProgramOnDevice,
+  runProgramOnDevice,
+  removeProgramFromDevice,
   stopProgramOnDevice,
-  uploadProgramOnDevice,
+  uploadProgramToDevice,
 } from './device';
 import { existsSync } from 'fs';
 import { SerialPort } from 'serialport';
@@ -183,7 +184,14 @@ async function askSlotAndExecuteMethod(
     `Executing ${functionName} ${slot.tooltip} (Slot ${slot.index})...`,
   );
 
-  execMethodOnDeviceSlot(functionName, slot.index);
+  switch (functionName) {
+    case 'runProgram':
+      return runProgramOnDevice(slot.index);
+    case 'removeProgram':
+      return removeProgramFromDevice(slot.index);
+    default:
+      return;
+  }
 }
 
 async function runProgram(slot: ProgramSlotTreeItem) {
@@ -282,5 +290,5 @@ async function uploadProgram(slot?: ProgramSlotTreeItem) {
 
   const prgName = basename(filename, '.py');
   const prgText = editor!.document.getText();
-  return uploadProgramOnDevice(prgName, prgText, slot.index);
+  return uploadProgramToDevice(prgName, prgText, slot.index);
 }

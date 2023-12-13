@@ -43,6 +43,11 @@ export type StorageStatus = {
   slots: SlotsInfo;
 };
 
+type DeviceSpec = {
+  path?: string;
+  manufacturer?: string;
+};
+
 function checkSlotId(slotId: number) {
   if (slotId < 0 || slotId > 19) {
     throw new Error(`Invalid program slot index ${slotId}, valid slots: 0-19`);
@@ -296,6 +301,10 @@ export function addDeviceOnChangeCallbak(callback: () => void) {
 
 export function removeDeviceAllListeners() {
   device?.removeAllListeners();
+}
+
+export async function listDevices(): Promise<DeviceSpec[]> {
+  return _testing.SerialPortType.list();
 }
 
 export { _testing };

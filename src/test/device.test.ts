@@ -12,6 +12,7 @@ import {
   addDeviceOnChangeCallbak,
   getDeviceInfo,
   removeDeviceAllListeners,
+  listDevices,
 } from '../device';
 import { SerialPortMock } from 'serialport';
 import * as chai from 'chai';
@@ -60,12 +61,11 @@ describe('Device', () => {
     APIRequestStub.restore();
   });
 
-  const createPortMock = (data: string, opts?: any) => {
-    return SerialPortMock.binding.createPort(deviceName, {
+  const createPortMock = (alternativeName?: string) => {
+    return SerialPortMock.binding.createPort(alternativeName || deviceName, {
       echo: true,
       record: true,
-      ...opts,
-      readyData: Buffer.from(data),
+      readyData: Buffer.from(''),
     });
   };
 
@@ -462,6 +462,19 @@ describe('Device', () => {
       await removeProgramFromDevice(12);
 
       expect(onChangeFn).to.have.been.calledOnce;
+    });
+  });
+
+  describe('listDevices', function () {
+    it('should list all available devices', async function () {
+      createPortMock('/dev/usbmodem1');
+      createPortMock('/dev/usbmodem2');
+
+      const devices = await listDevices();
+
+      expect(devices).to.have.lengthOf(2);
+      expect(devices[0].path).to.equal('/dev/usbmodem1');
+      expect(devices[1].path).to.equal('/dev/usbmodem2');
     });
   });
 });

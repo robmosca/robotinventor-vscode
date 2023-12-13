@@ -6,14 +6,14 @@ import {
   disconnectDevice,
   getDeviceSlots,
   isDeviceConnected,
+  listDevices,
   moveProgramOnDevice,
-  runProgramOnDevice,
   removeProgramFromDevice,
+  runProgramOnDevice,
   stopProgramOnDevice,
   uploadProgramToDevice,
 } from './device';
 import { existsSync } from 'fs';
-import { SerialPort } from 'serialport';
 import { basename } from 'path';
 
 const toastDuration = 5000;
@@ -94,12 +94,15 @@ async function askDeviceName() {
 }
 
 async function askDeviceFromList(manualEntry: string) {
-  const serialPorts = await SerialPort.list();
+  const devices = await listDevices();
+
   // using this promise in the quick-pick will cause a progress
   // bar to show if there are no items.
-  const list = serialPorts
-    .filter((port) => port.manufacturer === 'LEGO System A/S')
-    .map((port) => port.path);
+  const list = devices
+    .filter(
+      (device) => device.manufacturer === 'LEGO System A/S' && device.path,
+    )
+    .map((device) => device.path!);
 
   list.push(manualEntry);
   const selected = await vscode.window.showQuickPick(list, {

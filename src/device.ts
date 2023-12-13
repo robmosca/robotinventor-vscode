@@ -81,6 +81,21 @@ class Device extends EventEmitter {
     });
   }
 
+  async retrieveHubInfo() {
+    const info = (await APIRequest(this.serialPort!, 'get_hub_info', {})) as {
+      firmware: {
+        version: number[];
+        checksum: string;
+      };
+    };
+    const [major, minor, patch, build] = info.firmware.version;
+
+    this.firmwareVersion = `${major}.${minor}.${String(patch).padStart(
+      2,
+      '0',
+    )}.${String(build).padStart(4, '0')}-${info.firmware.checksum}`;
+  }
+
   getSlots() {
     return this.storageStatus?.slots;
   }
@@ -113,14 +128,12 @@ class Device extends EventEmitter {
       old_slotid: fromSlotId,
       new_slotid: toSlotId,
     });
-    await this.refreshStorageStatus();
-    this.emit('change');
+    return this.refreshStorageStatus();
   }
 
   async removeProgram(slotId: number) {
     await this.executeSlotSpecificCommand('remove_project', slotId);
-    await this.refreshStorageStatus();
-    this.emit('change');
+    return this.refreshStorageStatus();
   }
 
   async uploadProgram(prgName: string, prgText: string, slotId: number) {
@@ -182,7 +195,7 @@ class Device extends EventEmitter {
           }
         },
       );
-    });
+    }).then(() => this.retrieveHubInfo());
   }
 
   disconnect() {
@@ -243,16 +256,19 @@ export async function runProgramOnDevice(slotId: number) {
   return device?.runProgram(slotId);
 }
 
+export async function stopProgramOnDevice() {
+  return device?.stopProgram();
+}
+
+export async function moveProgramOnDevice(
+  fromSlotId: number,
+  toSlotId: number,
+) {
+  return device?.moveProgram(fromSlotId, toSlotId);
+}
+
 export async function removeProgramFromDevice(slotId: number) {
   return device?.removeProgram(slotId);
-}
-
-export function stopProgramOnDevice() {
-  device?.stopProgram();
-}
-
-export function moveProgramOnDevice(fromSlotId: number, toSlotId: number) {
-  device?.moveProgram(fromSlotId, toSlotId);
 }
 
 export function uploadProgramToDevice(

@@ -7,6 +7,11 @@ import {
   removeProgramFromDevice,
   uploadProgramToDevice,
   getDeviceSlots,
+  stopProgramOnDevice,
+  moveProgramOnDevice,
+  addDeviceOnChangeCallbak,
+  getDeviceInfo,
+  removeDeviceAllListeners,
 } from '../device';
 import { SerialPortMock } from 'serialport';
 import * as chai from 'chai';
@@ -74,25 +79,48 @@ describe('Device', () => {
     };
   };
 
+  const basicMockAPIRequestStub = () => {
+    APIRequestStub.callsFake((port, method) => {
+      if (method === 'get_storage_status') {
+        return Promise.resolve(getStorageInfo());
+      } else if (method === 'get_hub_info') {
+        return Promise.resolve({
+          firmware: {
+            version: [1, 2, 3, 0],
+            checksum: '1e60',
+          },
+        });
+      } else {
+        return Promise.resolve({});
+      }
+    });
+  };
+
   describe('connectDevice', function () {
     it('should connect to the device and refresh storage status', async function () {
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
       expect(isDeviceConnected()).to.be.true;
 
-      expect(APIRequestStub).to.have.been.calledOnce;
+      expect(APIRequestStub).to.have.been.calledTwice;
       expect(APIRequestStub).to.have.been.calledWith(
         sinon.match.any,
         'get_storage_status',
+        {},
+      );
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'get_hub_info',
         {},
       );
     });
 
     it('should throw an error if the device is already connected', async function () {
       createPortMock('');
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
@@ -139,7 +167,7 @@ describe('Device', () => {
   describe('disconnectDevice', function () {
     it('should disconnect the device', async function () {
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
@@ -160,7 +188,7 @@ describe('Device', () => {
   describe('runProgramOnDevice', function () {
     it('should run a program on a device slot', async function () {
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
@@ -179,7 +207,7 @@ describe('Device', () => {
 
     it('should throw an error if the slot is not valid', async function () {
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
@@ -199,29 +227,90 @@ describe('Device', () => {
     });
   });
 
-  describe('removeProgramFromDevice', function () {
-    it('should remove a program from a device slot', async function () {
+  describe('stopProgramOnDevice', function () {
+    it('should stop a running program on a device slot', async function () {
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
       APIRequestStub.reset();
       APIRequestStub.resolves({});
 
-      removeProgramFromDevice(12);
+      stopProgramOnDevice();
 
       expect(APIRequestStub).to.have.been.calledOnce;
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'program_terminate',
+        {},
+        sinon.match.any,
+      );
+    });
+  });
+
+  describe('moveProgramOnDevice', function () {
+    it('should move a program from one slot to another', async function () {
+      createPortMock('');
+      basicMockAPIRequestStub();
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.reset();
+      APIRequestStub.resolves({});
+      const onChangeFn = sinon.spy();
+
+      addDeviceOnChangeCallbak(onChangeFn);
+
+      await moveProgramOnDevice(12, 15);
+
+      expect(APIRequestStub).to.have.been.calledTwice;
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'move_project',
+        { old_slotid: 12, new_slotid: 15 },
+      );
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'get_storage_status',
+        {},
+      );
+      expect(onChangeFn).to.have.been.calledOnce;
+    });
+  });
+
+  describe('removeProgramFromDevice', function () {
+    it('should remove a program from a device slot', async function () {
+      createPortMock('');
+      basicMockAPIRequestStub();
+
+      await connectDevice(deviceName);
+
+      APIRequestStub.reset();
+      APIRequestStub.resolves({});
+      const onChangeFn = sinon.spy();
+
+      addDeviceOnChangeCallbak(onChangeFn);
+
+      await removeProgramFromDevice(12);
+
+      expect(APIRequestStub).to.have.been.calledTwice;
       expect(APIRequestStub).to.have.been.calledWith(
         sinon.match.any,
         'remove_project',
         { slotid: 12 },
       );
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'get_storage_status',
+        {},
+      );
+      expect(onChangeFn).to.have.been.calledOnce;
     });
 
     it('should throw an error if the slot is not valid', async function () {
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
@@ -255,7 +344,7 @@ describe('Device', () => {
         },
       };
       createPortMock('');
-      APIRequestStub.resolves(getStorageInfo());
+      basicMockAPIRequestStub();
 
       await connectDevice(deviceName);
 
@@ -275,10 +364,13 @@ describe('Device', () => {
         print("...but it's a good start!")
       `;
       const size = prgText.length;
+      const onChangeFn = sinon.spy();
+
+      addDeviceOnChangeCallbak(onChangeFn);
 
       await uploadProgramToDevice('Program 3', prgText, 12);
 
-      expect(APIRequestStub.callCount).to.equal(14);
+      expect(APIRequestStub.callCount).to.equal(15);
       expect(APIRequestStub).to.have.been.calledWith(
         sinon.match.any,
         'start_write_program',
@@ -293,6 +385,11 @@ describe('Device', () => {
             type: 'python',
           },
         },
+      );
+      expect(APIRequestStub).to.have.been.calledWith(
+        sinon.match.any,
+        'get_hub_info',
+        {},
       );
       expect(APIRequestStub).to.have.been.calledWith(
         sinon.match.any,
@@ -313,6 +410,58 @@ describe('Device', () => {
         ...defaultSlots,
         ...additionalSlots,
       });
+      expect(onChangeFn).to.have.been.calledOnce;
+    });
+  });
+
+  describe('getDeviceInfo', function () {
+    it('should return the device info', async function () {
+      createPortMock('');
+      basicMockAPIRequestStub();
+
+      await connectDevice(deviceName);
+
+      const info = getDeviceInfo();
+
+      expect(info).to.deep.equal({
+        name: '/dev/mock',
+        firmwareVersion: '1.2.03.0000-1e60',
+      });
+    });
+  });
+
+  describe('getDeviceSlots', function () {
+    it('should return the device slots', async function () {
+      createPortMock('');
+      basicMockAPIRequestStub();
+
+      await connectDevice(deviceName);
+
+      const slots = await getDeviceSlots();
+
+      expect(slots).to.deep.equal(defaultSlots);
+    });
+  });
+
+  describe('removeDeviceAllListeners', function () {
+    it('should remove all listeners', async function () {
+      createPortMock('');
+      basicMockAPIRequestStub();
+
+      await connectDevice(deviceName);
+
+      const onChangeFn = sinon.spy();
+      addDeviceOnChangeCallbak(onChangeFn);
+
+      await removeProgramFromDevice(12);
+
+      expect(onChangeFn).to.have.been.calledOnce;
+
+      removeDeviceAllListeners();
+
+      await removeProgramFromDevice(12);
+
+      expect(onChangeFn).to.have.been.calledOnce;
     });
   });
 });

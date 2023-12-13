@@ -11,10 +11,10 @@ import { decodeBase64, formatFilesize } from './utils';
 
 export class DeviceTreeItem extends vscode.TreeItem {
   constructor() {
-    const { name } = getDeviceInfo();
+    const { name, firmwareVersion } = getDeviceInfo();
     super(name, vscode.TreeItemCollapsibleState.Collapsed);
     this.tooltip = name;
-    this.description = 'No version available';
+    this.description = firmwareVersion || 'No version available';
     this.contextValue = 'device';
     this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
   }

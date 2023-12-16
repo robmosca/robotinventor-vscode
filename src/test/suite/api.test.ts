@@ -1,130 +1,126 @@
-import * as sinon from "sinon";
-import * as sinonChai from "sinon-chai";
-import * as chai from "chai";
-import API from "../../api";
+import { expect } from 'chai';
+import { APIRequest } from '../../api';
+import { SerialPortMock } from 'serialport';
 
-const SerialPort = require("@serialport/stream");
-const MockBinding = require("@serialport/binding-mock");
+describe('API Test Suite', function () {
+  const defaultPortName = '/dev/echoserialport';
 
-chai.use(sinonChai);
-const expect = chai.expect;
-
-suite("API Test Suite", function () {
-  suite("Waits for the API to be ready", function () {
-    test("Waits for API to be ready", async function () {
-      MockBinding.createPort("/dev/echoserialport", {
-        echo: true,
-        record: true,
-        readyData: Buffer.from('{"m":0, e: "", i: ""}\r'),
-      });
-      SerialPort.Binding = MockBinding;
-      const port = new SerialPort("/dev/echoserialport");
-      const api = new API(port);
-
-      await api.waitAPIready();
-
-      expect(port.binding.recording.toString()).to.equal("\x04\r");
+  const createPortMock = (data: string, opts?: any) => {
+    return SerialPortMock.binding.createPort(defaultPortName, {
+      echo: true,
+      record: true,
+      ...opts,
+      readyData: Buffer.from(data),
     });
+  };
 
-    test("Times out if the device does not emit the correct sequence", async function () {
-      MockBinding.createPort("/dev/echoserialport", {
-        echo: true,
-        record: true,
-        readyData: Buffer.from(""),
+  describe('Sends request', function () {
+    it('retrieves the corresponding response', async function () {
+      const reqId = '1234';
+      createPortMock(`{"m":0, "r": "response", "i": "${reqId}"}\r`);
+      const portMock = new SerialPortMock({
+        path: defaultPortName,
+        baudRate: 9600,
       });
-      SerialPort.Binding = MockBinding;
-      const port = new SerialPort("/dev/echoserialport");
-      const api = new API(port);
-
-      try {
-        await api.waitAPIready(500);
-      } catch (err) {
-        expect(err.message).to.equal("Timeout while processing message '\x04'");
-      }
-    });
-  });
-
-  suite("Sends request", function () {
-    test("and retrieve the corresponding response", async function () {
-      const reqId = "1234";
-
-      MockBinding.createPort("/dev/echoserialport", {
-        echo: true,
-        record: true,
-        readyData: Buffer.from(`{"m":0, "r": "response", "i": "${reqId}"}\r`),
-      });
-      SerialPort.Binding = MockBinding;
-      const port = new SerialPort("/dev/echoserialport");
-      const api = new API(port);
-
-      const response = await api.sendRequest(
-        "request",
-        { param1: "1", param2: 2 },
+      const response = await APIRequest(
+        portMock,
+        'request',
+        { param1: '1', param2: 2 },
         500,
-        reqId
+        undefined,
+        reqId,
       );
 
-      expect(port.binding.recording.toString()).to.equal(
-        '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r'
+      expect(portMock.port?.recording.toString()).to.equal(
+        '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r',
       );
-      expect(response).to.equal("response");
+      expect(response).to.equal('response');
     });
 
-    test("and raises an exception in case of error", async function () {
-      const reqId = "1234";
+    it('raises an exception in case of error', async function () {
+      const reqId = '1234';
 
-      MockBinding.createPort("/dev/echoserialport", {
-        echo: true,
-        record: true,
-        readyData: Buffer.from(
-          `{"m":0, "e": "eyJtZXNzYWdlIjogImVycm9yIn0=", "i": "${reqId}"}\r`
-        ),
+      createPortMock(
+        `{"m":0, "e": "eyJtZXNzYWdlIjogImVycm9yIn0=", "i": "${reqId}"}\r`,
+      );
+      const portMock = new SerialPortMock({
+        path: defaultPortName,
+        baudRate: 9600,
       });
-      SerialPort.Binding = MockBinding;
-      const port = new SerialPort("/dev/echoserialport");
-      const api = new API(port);
 
       try {
-        const response = await api.sendRequest(
-          "request",
-          { param1: "1", param2: 2 },
+        await APIRequest(
+          portMock,
+          'request',
+          { param1: '1', param2: 2 },
           500,
-          reqId
+          undefined,
+          reqId,
         );
       } catch (error) {
-        expect(port.binding.recording.toString()).to.equal(
-          '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r'
+        expect(portMock.port?.recording.toString()).to.equal(
+          '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r',
         );
-        expect(error.message).to.equal("error");
+        expect(error).instanceOf(Error);
+        expect((error as Error).message).to.equal('error');
       }
     });
 
-    test("and times out if the response does not come back in time", async function () {
-      const reqId = "1234";
-      MockBinding.createPort("/dev/echoserialport", {
-        echo: false,
-        record: true,
-        readyData: Buffer.from(""),
+    it("times out if the response doesn't come back in time", async function () {
+      const reqId = '1234';
+      createPortMock('', { echo: false });
+      const portMock = new SerialPortMock({
+        path: defaultPortName,
+        baudRate: 9600,
       });
-      SerialPort.Binding = MockBinding;
-      const port = new SerialPort("/dev/echoserialport");
-      const api = new API(port);
 
       try {
-        const response = await api.sendRequest(
-          "request",
-          { param1: "1", param2: 2 },
-          500,
-          reqId
+        await APIRequest(
+          portMock,
+          'request',
+          { param1: '1', param2: 2 },
+          20,
+          undefined,
+          reqId,
         );
       } catch (error) {
-        expect(port.binding.recording.toString()).to.equal(
-          '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r'
+        expect(portMock.port?.recording.toString()).to.equal(
+          '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r',
         );
-        expect(error.message).to.equal(
-          'Timeout while processing message \'{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\''
+        expect(error).instanceOf(Error);
+        expect((error as Error).message).to.equal(
+          'Timeout while processing message \'{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\'',
         );
       }
+    });
+
+    it('uses the command resolver if provided', async function () {
+      const reqId = '1234';
+      createPortMock(
+        `A line\r\nAnother line\r\ntreasure\r\nAnd a final line\r\n`,
+      );
+      const portMock = new SerialPortMock({
+        path: defaultPortName,
+        baudRate: 9600,
+      });
+      const response = await APIRequest(
+        portMock,
+        'request',
+        { param1: '1', param2: 2 },
+        500,
+        (line) => {
+          if (line.includes('treasure')) {
+            return { resolve: true, returnValue: 'Success' };
+          }
+          return { resolve: false };
+        },
+        reqId,
+      );
+
+      expect(portMock.port?.recording.toString()).to.equal(
+        '{"m":"request","p":{"param1":"1","param2":2},"i":"1234"}\r',
+      );
+      expect(response).to.equal('Success');
     });
   });
 });

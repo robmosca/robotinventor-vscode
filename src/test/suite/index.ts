@@ -1,38 +1,64 @@
 import * as path from 'path';
 import * as Mocha from 'mocha';
-import * as glob from 'glob';
+import { glob } from 'glob';
 
-export function run(): Promise<void> {
-	// Create the mocha test
-	const mocha = new Mocha({
-		ui: 'tdd',
-		color: true
-	});
+import * as NYC from 'nyc';
 
-	const testsRoot = path.resolve(__dirname, '..');
+// Simulates the recommended config option
+// extends: "@istanbuljs/nyc-config-typescript",
+import * as baseConfig from '@istanbuljs/nyc-config-typescript';
 
-	return new Promise((c, e) => {
-		glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
-			if (err) {
-				return e(err);
-			}
+// Recommended modules, loading them here to speed up NYC init
+// and minimize risk of race condition
+import 'ts-node/register';
+import 'source-map-support/register';
 
-			// Add files to the test suite
-			files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+export async function run(): Promise<void> {
+  // Setup coverage pre-test, including post-test hook to report
+  const nyc = new NYC({
+    ...baseConfig,
+    cwd: path.join(__dirname, '..', '..', '..'),
+    reporter: ['text-summary', 'html', 'lcov'],
+    all: true,
+    silent: false,
+    instrument: true,
+    hookRequire: true,
+    hookRunInContext: true,
+    hookRunInThisContext: true,
+    include: ['out/**/*.js'],
+    exclude: ['out/test/**'],
+  });
+  await nyc.reset();
+  await nyc.wrap();
 
-			try {
-				// Run the mocha test
-				mocha.run(failures => {
-					if (failures > 0) {
-						e(new Error(`${failures} tests failed.`));
-					} else {
-						c();
-					}
-				});
-			} catch (err) {
-				console.error(err);
-				e(err);
-			}
-		});
-	});
+  // Create the mocha test
+  const mocha = new Mocha({
+    ui: 'bdd',
+    color: true,
+  });
+
+  const testsRoot = path.resolve(__dirname, '..');
+
+  return new Promise((resolve, e) => {
+    glob('**/**.test.js', { cwd: testsRoot }).then((files) => {
+      // Add files to the test suite
+      files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
+
+      try {
+        // Run the mocha test
+        mocha.run((failures) => {
+          if (failures > 0) {
+            e(new Error(`${failures} tests failed.`));
+          } else {
+            resolve({});
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        e(err);
+      }
+    });
+  })
+    .then(() => nyc.writeCoverageFile())
+    .then(() => nyc.report());
 }

@@ -1,40 +1,49 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { Device, SlotInfo } from "./device";
-import { decodeBase64, formatFilesize } from "./utils";
+import * as vscode from 'vscode';
+import * as path from 'path';
+import {
+  SlotInfo,
+  addDeviceOnChangeCallbak,
+  getDeviceInfo,
+  getDeviceSlots,
+  removeDeviceAllListeners,
+} from './device';
+import { decodeBase64, formatFilesize } from './utils';
 
 export class DeviceTreeItem extends vscode.TreeItem {
-  constructor(public device: Device) {
-    super(device?.name, vscode.TreeItemCollapsibleState.Collapsed);
-    this.tooltip = device?.name;
-    this.description = "No version available";
-    this.contextValue = "device";
+  constructor() {
+    const { name, firmwareVersion } = getDeviceInfo();
+    super(name, vscode.TreeItemCollapsibleState.Collapsed);
+    this.tooltip = name;
+    this.description = firmwareVersion || 'No version available';
+    this.contextValue = 'device';
+    this.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
   }
 
   iconPath = {
-    light: path.join(__dirname, "..", "resources", "light", "device.svg"),
-    dark: path.join(__dirname, "..", "resources", "dark", "device.svg"),
+    light: path.join(__dirname, '..', 'resources', 'light', 'device.svg'),
+    dark: path.join(__dirname, '..', 'resources', 'dark', 'device.svg'),
   };
 
-  refresh() {
-    this.label = this.device?.name;
-    this.tooltip = this.device?.name;
-    this.description = this.device?.firmwareVersion;
+  refresh(): void {
+    const { name, firmwareVersion } = getDeviceInfo();
+    this.label = name;
+    this.tooltip = name;
+    this.description = firmwareVersion;
   }
 }
 
 export class ProgramSlotTreeItem extends vscode.TreeItem {
-  public index: number;
-  public slot: SlotInfo | undefined;
+  index: number;
+  slot: SlotInfo | undefined;
 
   constructor(index: number, slot?: SlotInfo) {
-    const name = slot ? decodeBase64(slot.name) : "";
+    const name = slot ? decodeBase64(slot.name) : '';
     const label = `${index}. ${name}`.trim();
     super(label, vscode.TreeItemCollapsibleState.None);
     this.index = index;
-    this.tooltip = slot ? name : "Empty";
-    this.description = slot ? formatFilesize(slot.size) : "Empty";
-    this.contextValue = slot ? "fullProgramSlot" : "emptyProgramSlot";
+    this.tooltip = slot ? name : 'Empty';
+    this.description = slot ? formatFilesize(slot.size) : 'Empty';
+    this.contextValue = slot ? 'fullProgramSlot' : 'emptyProgramSlot';
   }
 }
 
@@ -44,7 +53,7 @@ export class CommandTreeItem extends vscode.TreeItem {
     if (command) {
       this.command = {
         command: command,
-        title: "",
+        title: '',
       };
     }
   }
@@ -53,7 +62,8 @@ export class CommandTreeItem extends vscode.TreeItem {
 type BrowserTreeItem = DeviceTreeItem | ProgramSlotTreeItem | CommandTreeItem;
 
 export class Ri5devBrowserProvider
-  implements vscode.TreeDataProvider<BrowserTreeItem> {
+  implements vscode.TreeDataProvider<BrowserTreeItem>
+{
   private device: DeviceTreeItem | undefined;
   private _onDidChangeTreeData: vscode.EventEmitter<
     BrowserTreeItem | undefined | null | void
@@ -62,40 +72,36 @@ export class Ri5devBrowserProvider
     BrowserTreeItem | undefined | null | void
   > = this._onDidChangeTreeData.event;
 
-  constructor() {}
-
-  public getTreeItem(element: DeviceTreeItem): vscode.TreeItem {
+  getTreeItem(element: DeviceTreeItem): vscode.TreeItem {
     return element;
   }
 
-  public getChildren(
-    element?: BrowserTreeItem
+  getChildren(
+    element?: BrowserTreeItem,
   ): vscode.ProviderResult<BrowserTreeItem[]> {
     if (!element) {
       return this.device ? [this.device] : [];
     } else if (element === this.device) {
-      const device = this.device.device;
-      const slots = device.storageStatus?.slots ?? [];
+      const slots = getDeviceSlots() ?? [];
       return [...Array(20).keys()].map(
-        (i) => new ProgramSlotTreeItem(i, slots[i])
+        (i) => new ProgramSlotTreeItem(i, slots[i]),
       );
     } else {
       return [];
     }
   }
 
-  public setDevice(device: Device) {
-    this.device = new DeviceTreeItem(device);
-    device.on("change", () => {
+  refreshDevice() {
+    this.device = new DeviceTreeItem();
+    addDeviceOnChangeCallbak(() => {
       this.device?.refresh();
       this._onDidChangeTreeData.fire();
     });
-
     this._onDidChangeTreeData.fire();
   }
 
-  public clearDevice() {
-    this.device?.device.removeAllListeners();
+  clearDevice() {
+    removeDeviceAllListeners();
     this.device = undefined;
     this._onDidChangeTreeData.fire();
   }

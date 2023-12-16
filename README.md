@@ -11,8 +11,8 @@ program the LEGO® MINDSTORMS® Robot Inventor set in MicroPython.
 
 ## How to install
 
-**\*Before** installing the extension, please read the disclaimer at the end of this
-page.\*
+**Before installing the extension, please read the disclaimer at the end of this
+page.**
 
 **Prerequisites**
 

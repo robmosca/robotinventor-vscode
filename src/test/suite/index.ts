@@ -26,7 +26,7 @@ export async function run(): Promise<void> {
     hookRunInContext: true,
     hookRunInThisContext: true,
     include: ['out/**/*.js'],
-    exclude: ['out/test/**'],
+    exclude: ['out/test/**', 'out/Ri5devBrowser.js', 'out/extension.js'],
   });
   await nyc.reset();
   await nyc.wrap();

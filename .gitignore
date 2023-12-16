@@ -4,3 +4,4 @@ node_modules
 *.vsix
 *.code-workspace
 .nyc_output
+coverage

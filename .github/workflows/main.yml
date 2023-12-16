@@ -21,24 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install Pnpm
-        uses: pnpm/action-setup@v2.0.1
-        with:
-          version: 8.11.0
-
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18.19.0
-          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      - run: xvfb-run -a pnpm run test
+      - run: xvfb-run -a npm run test
         if: runner.os == 'Linux'
 
-      - run: pnpm run test
+      - run: npm run test
         if: runner.os == 'macOS'
 
       - name: Upload coverage reports to Codecov

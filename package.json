@@ -102,10 +102,11 @@
     "clean": "rm -rf ./out",
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
-    "pretest": "pnpm run compile && pnpm run lint",
+    "package": "vsce package",
+    "pretest": "npm run compile && npm run lint",
     "test": "node ./out/test/runTest.js",
     "typecheck": "tsc --noEmit -p ./",
-    "vscode:prepublish": "pnpm run compile",
+    "vscode:prepublish": "npm run compile",
     "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
@@ -130,10 +131,10 @@
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vsce": "^2.15.0"
   },
   "dependencies": {
     "serialport": "^12.0.0"
-  },
-  "packageManager": "pnpm@8.11.0"
+  }
 }
